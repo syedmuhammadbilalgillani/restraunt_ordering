@@ -1,0 +1,67 @@
+"use client";
+import { Plus, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MenuItem } from "@/types";
+import { useCartStore } from "@/store/cart-store";
+import Link from "next/link";
+import { toast } from "sonner";
+
+interface MenuCardProps {
+  item: MenuItem;
+}
+
+export function MenuCard({ item }: MenuCardProps) {
+  const addItem = useCartStore((s) => s.addItem);
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(item);
+    toast.success(`${item.name} added to cart`);
+  };
+
+  return (
+    <Link href={`/item/${item.id}`}>
+      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
+        <div className="relative aspect-4/3 overflow-hidden">
+          <img
+            src={item.image}
+            alt={item.name}
+            loading="lazy"
+            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+          />
+          {item.tags && item.tags.length > 0 && (
+            <div className="absolute top-2 left-2 flex gap-1">
+              {item.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-display font-semibold text-sm leading-tight truncate">{item.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              <span className="font-display font-bold text-primary">${item.price.toFixed(2)}</span>
+              <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                <Star className="h-3 w-3 fill-warning text-warning" /> {item.rating}
+              </span>
+            </div>
+            <Button size="icon" className="h-8 w-8 rounded-full" onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
