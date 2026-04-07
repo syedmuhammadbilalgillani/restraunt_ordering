@@ -13,8 +13,7 @@ interface LocationState {
   setHasHydrated: (value: boolean) => void;
 }
 
-const LOCATION_STORAGE_SECRET =
-  process.env.NEXT_PUBLIC_STORAGE_SECRET || "foodhub-location-secret";
+const LOCATION_STORAGE_SECRET = process.env.NEXT_PUBLIC_STORAGE_SECRET || "";
 
 const encryptedLocationStorage: StateStorage = {
   getItem: async (name) => {
@@ -47,7 +46,7 @@ export const useLocationStore = create<LocationState>()(
       setHasHydrated: (value) => set({ hasHydrated: value }),
     }),
     {
-      name: "foodhub-location",
+      name: "next_location",
       storage: createJSONStorage(() => encryptedLocationStorage),
       partialize: (state) => ({ selectedLocation: state.selectedLocation }),
       onRehydrateStorage: () => (state) => {

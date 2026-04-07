@@ -52,10 +52,7 @@ export interface Address {
   isDefault: boolean;
 }
 
-
-
 // #####################
-
 
 export interface Location {
   id: string;
@@ -64,4 +61,18 @@ export interface Location {
   code: string;
   longitude: string;
   latitude: string;
+}
+
+export interface MenuCategory {
+  menu: {
+    id: string;
+    name: string;
+  }[];
+  categories: {
+    id: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    displayOrder: number;
+  }[];
 }

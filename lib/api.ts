@@ -1,5 +1,5 @@
 import { CACHE_TAGS } from "@/constants/cache-tags";
-import { Category, Location, MenuItem, Order } from "@/types";
+import { Category, Location, MenuCategory, MenuItem, Order } from "@/types";
 import { unstable_cache } from "next/cache";
 import { apiClient } from "./apiClient";
 import { categories, menuItems, mockOrders } from "./mock-data";
@@ -48,6 +48,19 @@ export const getAllLocations = unstable_cache(
   [CACHE_TAGS.LOCATION],
   {
     tags: [CACHE_TAGS.LOCATION],
+    revalidate: REVALIDATE_TIME,
+  },
+);
+export const getAllMenuCategoriesByLocation = unstable_cache(
+  async () => {
+    const response = await apiClient.get<{ data: MenuCategory }>(
+      `/menu/categories`,
+    );
+    return (response?.data?.data as MenuCategory) || [];
+  },
+  [CACHE_TAGS.MENU_CATEGORIES_BY_LOCATION],
+  {
+    tags: [CACHE_TAGS.MENU_CATEGORIES_BY_LOCATION],
     revalidate: REVALIDATE_TIME,
   },
 );

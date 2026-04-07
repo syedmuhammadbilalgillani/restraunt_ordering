@@ -1,26 +1,15 @@
-'use client';
-import { MenuCard } from "@/components/menu-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { fetchCategories, fetchMenuItems } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+// import { Skeleton } from "@/components/ui/skeleton";
+import { getAllMenuCategoriesByLocation } from "@/lib/api";
+// import { categories } from "@/lib/mock-data";
 import { ArrowRight, ChevronRight, Clock, Truck, Utensils } from "lucide-react";
 import Link from "next/link";
 
-export default function HomePage() {
-  const { data: categories, isLoading: catLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: fetchCategories,
-  });
+export default async function HomePage() {
+  const menuCategories = await getAllMenuCategoriesByLocation();
 
-  const { data: menuItems, isLoading: menuLoading } = useQuery({
-    queryKey: ["menu"],
-    queryFn: () => fetchMenuItems(),
-  });
-
-  const popularItems = menuItems?.filter((i) => i.popular).slice(0, 6);
-
+  console.log(menuCategories);
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -88,7 +77,7 @@ export default function HomePage() {
           </Button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          {catLoading
+          {/* {catLoading
             ? Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i}>
                   <CardContent className="p-3">
@@ -96,38 +85,39 @@ export default function HomePage() {
                     <Skeleton className="h-4 mt-2" />
                   </CardContent>
                 </Card>
-              ))
-            : categories?.map((cat) => (
-                <Link
-                  href={`/menu?category=${cat.id}`}
-                  key={cat.id}
-                  className="group"
-                >
-                  <Card className="overflow-hidden hover:shadow-md transition-all hover:-translate-y-1">
-                    <CardContent className="p-3 text-center">
-                      <div className="aspect-square rounded-lg overflow-hidden mb-2">
-                        <img
-                          src={cat.image}
-                          alt={cat.name}
-                          loading="lazy"
-                          className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
-                        />
-                      </div>
-                      <span className="text-sm font-medium">
-                        {cat.icon} {cat.name}
-                      </span>
-                      <p className="text-xs text-muted-foreground">
-                        {cat.itemCount} items
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+              )) */}
+          {/* :{" "} */}
+          {menuCategories?.categories?.map((cat) => (
+            <Link
+              href={`/menu?category=${cat.id}`}
+              key={cat.id}
+              className="group"
+            >
+              <Card className="overflow-hidden hover:shadow-md transition-all hover:-translate-y-1">
+                <CardContent className="p-3 text-center">
+                  <div className="aspect-square rounded-lg overflow-hidden mb-2">
+                    <img
+                      src={cat?.imageUrl || ""}
+                      alt={cat.name}
+                      loading="lazy"
+                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <span className="text-sm font-medium">
+                    {cat.name}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {/* {cat.itemCount} items */}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
       </section>
 
       {/* Popular Items */}
-      <section className="container pb-16">
+      {/* <section className="container pb-16">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-display text-2xl font-bold">Popular Items</h2>
           <Button variant="ghost" size="sm" className="gap-1" asChild>
@@ -152,7 +142,7 @@ export default function HomePage() {
                 <MenuCard key={item.id} item={item} />
               ))}
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
