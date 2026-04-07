@@ -1,5 +1,10 @@
+import { CACHE_TAGS } from "@/constants/cache-tags";
+import { Category, Location, MenuItem, Order } from "@/types";
+import { unstable_cache } from "next/cache";
+import { apiClient } from "./apiClient";
 import { categories, menuItems, mockOrders } from "./mock-data";
-import { Category, MenuItem, Order } from "@/types";
+
+const REVALIDATE_TIME = 60 * 60 * 24 * 30; // 30 days
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -29,6 +34,20 @@ export async function searchMenuItems(query: string): Promise<MenuItem[]> {
   await delay(300);
   const lower = query.toLowerCase();
   return menuItems.filter(
-    (i) => i.name.toLowerCase().includes(lower) || i.description.toLowerCase().includes(lower)
+    (i) =>
+      i.name.toLowerCase().includes(lower) ||
+      i.description.toLowerCase().includes(lower),
   );
 }
+
+export const getAllLocations = unstable_cache(
+  async () => {
+    const response = await apiClient.get<{ data: Location[] }>("/locations");
+    return (response?.data?.data as Location[]) || [];
+  },
+  [CACHE_TAGS.LOCATION],
+  {
+    tags: [CACHE_TAGS.LOCATION],
+    revalidate: REVALIDATE_TIME,
+  },
+);

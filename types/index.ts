@@ -51,3 +51,17 @@ export interface Address {
   zip: string;
   isDefault: boolean;
 }
+
+
+
+// #####################
+
+
+export interface Location {
+  id: string;
+  name: string;
+  slug: string;
+  code: string;
+  longitude: string;
+  latitude: string;
+}
