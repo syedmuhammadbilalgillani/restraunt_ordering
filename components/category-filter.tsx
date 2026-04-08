@@ -32,7 +32,7 @@ export function CategoryFilter({ categories, selected, onSelect }: CategoryFilte
               : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
           )}
         >
-          <span>{cat.icon}</span>
+          {cat.icon ? <span>{cat.icon}</span> : null}
           {cat.name}
         </button>
       ))}

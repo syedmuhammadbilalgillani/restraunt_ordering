@@ -1,9 +1,9 @@
 export interface Category {
   id: string;
   name: string;
-  icon: string;
-  image: string;
-  itemCount: number;
+  icon?: string;
+  image?: string;
+  itemCount?: number;
 }
 
 export interface MenuItem {
@@ -96,6 +96,52 @@ export interface MenuItemsMeta {
   tenantSlug: string;
   isMultiLocation: boolean;
   location: Location | null;
+}
+
+export interface PublicMenuBootstrapMenu {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export interface PublicMenuBootstrapCategory {
+  id: string;
+  name: string;
+  itemCount: number;
+}
+
+export interface PublicMenuMeta extends MenuItemsMeta {
+  menuId?: string | null;
+  categoryId?: string | null;
+}
+
+export interface PublicMenuBootstrapResponse {
+  success: boolean;
+  data: {
+    menu: PublicMenuBootstrapMenu | null;
+    categories: PublicMenuBootstrapCategory[];
+  };
+  meta?: PublicMenuMeta;
+  error?: ApiError;
+}
+
+export interface PublicMenuItem {
+  id?: string;
+  image: string;
+  title: string;
+  desc: string;
+  price: string;
+}
+
+export interface PublicMenuItemsResponse {
+  success: boolean;
+  data: {
+    items: PublicMenuItem[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+  meta?: PublicMenuMeta;
+  error?: ApiError;
 }
 
 export interface ApiError {

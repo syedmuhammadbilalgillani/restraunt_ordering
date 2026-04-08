@@ -7,6 +7,8 @@ import {
   MenuCategory,
   MenuItem,
   Order,
+  PublicMenuBootstrapResponse,
+  PublicMenuItemsResponse,
 } from "@/types";
 import { unstable_cache } from "next/cache";
 import { apiClient } from "./apiClient";
@@ -159,3 +161,69 @@ export const getMenuItemById = unstable_cache(
     revalidate: REVALIDATE_TIME,
   },
 );
+
+export async function getPublicMenuBootstrap(params: {
+  locationId: string;
+  menuId?: string;
+}): Promise<PublicMenuBootstrapResponse> {
+  const response = await apiClient.get<PublicMenuBootstrapResponse>(
+    "/menu/bootstrap",
+    {
+      params: {
+        locationId: params.locationId,
+        menuId: params.menuId,
+      },
+    },
+  );
+
+  if (response?.data?.success === false || !response?.data?.data) {
+    return {
+      success: false,
+      data: {
+        menu: null,
+        categories: [],
+      },
+      error: response?.data?.error || {
+        code: "INTERNAL_ERROR",
+        message: "Failed to load menu bootstrap",
+      },
+    };
+  }
+
+  return response.data;
+}
+
+export async function getPublicMenuItems(params: {
+  locationId: string;
+  categoryId?: string;
+  menuId?: string;
+  limit?: number;
+  cursor?: string | null;
+}): Promise<PublicMenuItemsResponse> {
+  const response = await apiClient.get<PublicMenuItemsResponse>("/menu/items", {
+    params: {
+      locationId: params.locationId,
+      categoryId: params.categoryId,
+      menuId: params.menuId,
+      limit: params.limit ?? 20,
+      cursor: params.cursor || undefined,
+    },
+  });
+
+  if (response?.data?.success === false || !response?.data?.data) {
+    return {
+      success: false,
+      data: {
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      },
+      error: response?.data?.error || {
+        code: "INTERNAL_ERROR",
+        message: "Failed to load menu items",
+      },
+    };
+  }
+
+  return response.data;
+}

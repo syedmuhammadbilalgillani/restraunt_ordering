@@ -1,9 +1,8 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCartStore } from "@/store/cart-store";
-import { Item } from "@/types";
+import { Item, PublicMenuItem } from "@/types";
 import { Plus, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,27 +10,33 @@ import { toast } from "sonner";
 import { Skeleton } from "./ui/skeleton";
 
 interface MenuCardProps {
-  item: Item;
+  item: Item | PublicMenuItem;
 }
 
 export function MenuCard({ item }: MenuCardProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const itemName = "title" in item ? item.title : item.name;
+  const itemDescription = "desc" in item ? item.desc : item.description;
+  const itemImage = "image" in item ? item.image : item.imageUrl;
+  const itemPrice = "price" in item ? item.price : item.basePrice;
+  const itemId = "id" in item ? item.id : undefined;
+  const canAddToCart = !("title" in item);
 
   const handleAdd = (e: React.MouseEvent) => {
+    if (!canAddToCart) return;
     e.preventDefault();
     e.stopPropagation();
     addItem(item);
-    toast.success(`${item.name} added to cart`);
+    toast.success(`${itemName} added to cart`);
   };
 
-  return (
-    <Link href={`/item/${item.id}`}>
+  const cardContent = (
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
         <div className="relative aspect-4/3 overflow-hidden">
-        {item.imageUrl ? (
+        {itemImage ? (
           <Image
-            src={item.imageUrl || ""}
-            alt={item.name}
+            src={itemImage}
+            alt={itemName}
             height={469}
             width={352}
             loading="lazy"
@@ -55,23 +60,32 @@ export function MenuCard({ item }: MenuCardProps) {
         <CardContent className="p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="font-display font-semibold text-sm leading-tight truncate">{item.name}</h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+              <h3 className="font-display font-semibold text-sm leading-tight truncate">{itemName}</h3>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{itemDescription}</p>
             </div>
           </div>
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-primary">${item.basePrice}</span>
-              <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-                <Star className="h-3 w-3 fill-warning text-warning" /> {item.sku}
-              </span>
+              <span className="font-display font-bold text-primary">${itemPrice}</span>
+              {"sku" in item ? (
+                <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                  <Star className="h-3 w-3 fill-warning text-warning" /> {item.sku}
+                </span>
+              ) : null}
             </div>
-            <Button size="icon" className="h-8 w-8 rounded-full" onClick={handleAdd}>
-              <Plus className="h-4 w-4" />
-            </Button>
+            {canAddToCart ? (
+              <Button size="icon" className="h-8 w-8 rounded-full" onClick={handleAdd}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
-    </Link>
   );
+
+  if (itemId) {
+    return <Link href={`/item/${itemId}`}>{cardContent}</Link>;
+  }
+
+  return cardContent;
 }

@@ -1,44 +1,69 @@
-"use client";
-import { useQuery } from "@tanstack/react-query";
-import { fetchCategories, fetchMenuItems, searchMenuItems } from "@/lib/api";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { MenuCard } from "@/components/menu-card";
-import { CategoryFilter } from "@/components/category-filter";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDebounce } from "@/hooks/use-debounce";
+import { Card, CardContent } from "@/components/ui/card";
+import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
+import { getPublicMenuBootstrap, getPublicMenuItems } from "@/lib/api";
+import { MenuCard } from "@/components/menu-card";
+import { cookies } from "next/headers";
+import Link from "next/link";
 
-export default function MenuPage() {
-  const searchParams = useSearchParams();
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    searchParams.get("category"),
-  );
-  const [gridView, setGridView] = useState(true);
-  const debouncedSearch = useDebounce(search, 300);
+type MenuPageProps = {
+  searchParams: Promise<{
+    category?: string;
+    menuId?: string;
+    cursor?: string;
+  }>;
+};
 
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: fetchCategories,
-  });
+function buildMenuHref({
+  category,
+  menuId,
+  cursor,
+}: {
+  category?: string;
+  menuId?: string;
+  cursor?: string;
+}) {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (menuId) params.set("menuId", menuId);
+  if (cursor) params.set("cursor", cursor);
+  const query = params.toString();
+  return query ? `/menu?${query}` : "/menu";
+}
 
-  const { data: menuItems, isLoading } = useQuery({
-    queryKey: ["menu", selectedCategory, debouncedSearch],
-    queryFn: () => {
-      if (debouncedSearch) return searchMenuItems(debouncedSearch);
-      return fetchMenuItems(selectedCategory || undefined);
-    },
-  });
+export default async function MenuPage({ searchParams }: MenuPageProps) {
+  const params = await searchParams;
+  const cookieStore = await cookies();
+  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
+  const selectedCategory = params.category || undefined;
+  const menuId = params.menuId || undefined;
+  const cursor = params.cursor || undefined;
 
-  const handleCategorySelect = (id: string | null) => {
-    setSelectedCategory(id);
-    if (id) searchParams.set("category", id as string);
-    else searchParams.delete("category", id as string);
-  };
+  if (!locationId) {
+    return (
+      <div className="min-h-screen">
+        <div className="container py-20 text-center text-muted-foreground">
+          <p className="text-lg">Please select a location first.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const [bootstrapData, menuItemsResponse] = await Promise.all([
+    getPublicMenuBootstrap({ locationId, menuId }),
+    getPublicMenuItems({
+      locationId,
+      menuId,
+      categoryId: selectedCategory,
+      cursor,
+      limit: 20,
+    }),
+  ]);
+
+  const tabs = bootstrapData?.data?.categories || [];
+  const menuItems = menuItemsResponse?.data?.items || [];
+  const hasMore = menuItemsResponse?.data?.hasMore;
+  const nextCursor = menuItemsResponse?.data?.nextCursor || undefined;
 
   return (
     <div className="min-h-screen">
@@ -48,81 +73,72 @@ export default function MenuPage() {
           <p className="text-muted-foreground">Explore our full menu</p>
         </div>
 
-        <div className="flex gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search menu items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 rounded-xl"
-            />
-          </div>
-          <div className="hidden sm:flex border rounded-xl overflow-hidden">
-            <Button
-              variant={gridView ? "default" : "ghost"}
-              size="icon"
-              onClick={() => setGridView(true)}
+        <div className="mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+            <Link
+              href={buildMenuHref({ menuId })}
+              className={
+                selectedCategory
+                  ? "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  : "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors bg-primary text-primary-foreground"
+              }
             >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={!gridView ? "default" : "ghost"}
-              size="icon"
-              onClick={() => setGridView(false)}
-            >
-              <List className="h-4 w-4" />
-            </Button>
+              All
+            </Link>
+            {tabs.map((tab) => (
+              <Link
+                key={tab.id}
+                href={buildMenuHref({ category: tab.id, menuId })}
+                className={
+                  selectedCategory === tab.id
+                    ? "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors bg-primary text-primary-foreground"
+                    : "shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }
+              >
+                {tab.name}
+              </Link>
+            ))}
           </div>
         </div>
 
-        {categories && (
+        {!menuItemsResponse?.success ? (
           <div className="mb-6">
-            <CategoryFilter
-              categories={categories}
-              selected={selectedCategory}
-              onSelect={handleCategorySelect}
-            />
+            <Card>
+              <CardContent className="p-6 text-sm text-muted-foreground">
+                Failed to load menu items.
+              </CardContent>
+            </Card>
           </div>
-        )}
-
-        {isLoading ? (
-          <div
-            className={
-              gridView
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "space-y-4"
-            }
-          >
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <Skeleton className="aspect-[4/3]" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-1/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : menuItems && menuItems.length > 0 ? (
-          <div
-            className={
-              gridView
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "space-y-4"
-            }
-          >
-            {menuItems.map((item) => (
-              <MenuCard key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
+        ) : menuItems.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <p className="text-lg">No items found</p>
-            <p className="text-sm mt-1">Try a different search or category</p>
+            <p className="text-sm mt-1">Try a different category</p>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {menuItems.map((item, index) => (
+                <MenuCard key={item.id || `${item.title}-${index}`} item={item} />
+              ))}
+            </div>
+            {hasMore && nextCursor ? (
+              <div className="flex justify-center mt-8">
+                <Button asChild>
+                  <Link
+                    href={buildMenuHref({
+                      category: selectedCategory,
+                      menuId,
+                      cursor: nextCursor,
+                    })}
+                  >
+                    Load more
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
+
       </div>
     </div>
   );
