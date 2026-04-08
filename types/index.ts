@@ -136,7 +136,7 @@ export interface PublicMenuItem {
 export interface PublicMenuItemsResponse {
   success: boolean;
   data: {
-    items: PublicMenuItem[];
+    items: Item[];
     nextCursor: string | null;
     hasMore: boolean;
   };

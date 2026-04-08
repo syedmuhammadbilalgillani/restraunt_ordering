@@ -208,7 +208,7 @@ export default function CheckoutPage() {
                       {item.quantity}x {item.menuItem.name}
                     </span>
                     <span>
-                      ${(item.menuItem.price * item.quantity).toFixed(2)}
+                      ${(item.menuItem.basePrice * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))}

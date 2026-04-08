@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth-store";
 import { useCartStore } from "@/store/cart-store";
+import { CartItem } from "@/types";
 import {
   ArrowRight,
   Minus,
@@ -11,6 +12,7 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -59,13 +61,15 @@ export default function CartPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Items */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => (
+            {items.map((item: CartItem, index: number) => (
               <div
-                key={item.menuItem.id}
+                key={`${item.menuItem.id}-${index}`}
                 className="flex gap-4 p-4 rounded-xl border bg-card"
               >
-                <img
-                  src={item.menuItem.image}
+                <Image
+                  height={96}
+                  width={96}
+                  src={item.menuItem.imageUrl ?? ""}
                   alt={item.menuItem.name}
                   className="h-24 w-24 rounded-lg object-cover"
                 />
@@ -107,7 +111,7 @@ export default function CartPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-display font-bold text-primary">
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                        ${(item.menuItem.basePrice * item.quantity).toFixed(2)}
                       </span>
                       <Button
                         variant="ghost"

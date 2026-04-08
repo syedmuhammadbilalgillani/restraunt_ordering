@@ -40,37 +40,4 @@ export const menuItems: MenuItem[] = [
   { id: "item-18", name: "Spicy Arrabbiata Penne", description: "Penne in a fiery tomato sauce with garlic and red chili", price: 12.99, image: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=500&h=400&fit=crop", categoryId: "cat-8", popular: false, rating: 4.4, calories: 580, tags: ["spicy", "vegetarian"] },
 ];
 
-export const mockOrders: Order[] = [
-  {
-    id: "ord-001",
-    items: [
-      { menuItem: menuItems[0], quantity: 2 },
-      { menuItem: menuItems[10], quantity: 1 },
-    ],
-    total: 32.97,
-    status: "delivered",
-    date: "2026-04-05T18:30:00Z",
-    deliveryType: "delivery",
-  },
-  {
-    id: "ord-002",
-    items: [
-      { menuItem: menuItems[3], quantity: 1 },
-      { menuItem: menuItems[12], quantity: 2 },
-    ],
-    total: 35.97,
-    status: "preparing",
-    date: "2026-04-06T12:00:00Z",
-    deliveryType: "pickup",
-  },
-  {
-    id: "ord-003",
-    items: [
-      { menuItem: menuItems[6], quantity: 3 },
-    ],
-    total: 50.97,
-    status: "pending",
-    date: "2026-04-06T14:15:00Z",
-    deliveryType: "delivery",
-  },
-];
+

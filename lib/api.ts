@@ -3,16 +3,15 @@ import {
   Category,
   ItemsResponse,
   Location,
-  MenuItemByIdResponse,
   MenuCategory,
   MenuItem,
-  Order,
+  MenuItemByIdResponse,
   PublicMenuBootstrapResponse,
-  PublicMenuItemsResponse,
+  PublicMenuItemsResponse
 } from "@/types";
 import { unstable_cache } from "next/cache";
 import { apiClient } from "./apiClient";
-import { categories, menuItems, mockOrders } from "./mock-data";
+import { categories, menuItems } from "./mock-data";
 
 const REVALIDATE_TIME = 60 * 60 * 24 * 30; // 30 days
 
@@ -35,10 +34,6 @@ export async function fetchMenuItem(id: string): Promise<MenuItem | undefined> {
   return menuItems.find((i) => i.id === id);
 }
 
-export async function fetchOrders(): Promise<Order[]> {
-  await delay(500);
-  return mockOrders;
-}
 
 export async function searchMenuItems(query: string): Promise<MenuItem[]> {
   await delay(300);

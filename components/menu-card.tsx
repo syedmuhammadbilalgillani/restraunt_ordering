@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCartStore } from "@/store/cart-store";
-import { Item, PublicMenuItem } from "@/types";
+import { Item } from "@/types";
 import { Plus, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,20 +10,19 @@ import { toast } from "sonner";
 import { Skeleton } from "./ui/skeleton";
 
 interface MenuCardProps {
-  item: Item | PublicMenuItem;
+  item: Item 
 }
 
 export function MenuCard({ item }: MenuCardProps) {
   const addItem = useCartStore((s) => s.addItem);
-  const itemName = "title" in item ? item.title : item.name;
-  const itemDescription = "desc" in item ? item.desc : item.description;
-  const itemImage = "image" in item ? item.image : item.imageUrl;
-  const itemPrice = "price" in item ? item.price : item.basePrice;
-  const itemId = "id" in item ? item.id : undefined;
-  const canAddToCart = !("title" in item);
+  const itemName = item.name;
+  const itemDescription = item.description;
+  const itemImage = item.imageUrl;
+  const itemPrice = item.basePrice;
+  const itemId = item.id;
 
   const handleAdd = (e: React.MouseEvent) => {
-    if (!canAddToCart) return;
+    // if (!canAddToCart) return;
     e.preventDefault();
     e.stopPropagation();
     addItem(item);
@@ -73,11 +72,11 @@ export function MenuCard({ item }: MenuCardProps) {
                 </span>
               ) : null}
             </div>
-            {canAddToCart ? (
+            {/* {canAddToCart ? ( */}
               <Button size="icon" className="h-8 w-8 rounded-full" onClick={handleAdd}>
                 <Plus className="h-4 w-4" />
               </Button>
-            ) : null}
+            {/* // ) : null} */}
           </div>
         </CardContent>
       </Card>

@@ -5,6 +5,7 @@ import { getPublicMenuBootstrap, getPublicMenuItems } from "@/lib/api";
 import { MenuCard } from "@/components/menu-card";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { Item } from "@/types";
 
 type MenuPageProps = {
   searchParams: Promise<{
@@ -117,8 +118,8 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {menuItems.map((item, index) => (
-                <MenuCard key={item.id || `${item.title}-${index}`} item={item} />
+              {menuItems.map((item: Item, index: number) => (
+                <MenuCard key={`${item.id}-${index}`} item={item} />
               ))}
             </div>
             {hasMore && nextCursor ? (
