@@ -63,7 +63,7 @@ export function Navbar({ locations }: NavbarProps) {
             </Button>
           )}
 
-          <LocationSelect locations={locations} compact />
+         {locations.length > 1 && <LocationSelect locations={locations} compact />}
 
           <ThemeToggle />
 
@@ -152,9 +152,11 @@ export function Navbar({ locations }: NavbarProps) {
       {mobileOpen && (
         <div className="md:hidden border-t bg-background animate-slide-up">
           <nav className="container flex flex-col py-4 gap-1">
-            <div className="px-3 pb-2">
-              <LocationSelect locations={locations} />
-            </div>
+            {locations.length > 1 && (
+              <div className="px-3 pb-2">
+                <LocationSelect locations={locations} />
+              </div>
+            )}
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}

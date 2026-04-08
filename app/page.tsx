@@ -13,6 +13,7 @@ import { ArrowRight, ChevronRight, Clock, Truck, Utensils } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
+import Image from "next/image";
 
 export default async function HomePage() {
   const cookieStore = await cookies();
@@ -115,12 +116,18 @@ export default async function HomePage() {
                 <Card className="overflow-hidden hover:shadow-md transition-all hover:-translate-y-1">
                   <CardContent className="p-3 text-center">
                     <div className="aspect-square rounded-lg overflow-hidden mb-2">
-                      <img
+                      {cat?.imageUrl ? (
+                      <Image
+                        height={142}
+                        width={142}
                         src={cat?.imageUrl || ""}
                         alt={cat.name}
                         loading="lazy"
                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
                       />
+                      ) : (
+                        <Skeleton className="aspect-square rounded-lg" />
+                      )}
                     </div>
                     <span className="text-sm font-medium">{cat.name}</span>
                     <p className="text-xs text-muted-foreground">
