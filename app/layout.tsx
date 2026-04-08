@@ -52,7 +52,7 @@ export default async function RootLayout({
         className="min-h-full flex flex-col"
       >
         <LocationWrapper locations={locations || []}>
-          <Navbar />
+          <Navbar locations={locations || []} />
           <TanstackProvider>{children}</TanstackProvider>
         </LocationWrapper>
         <Toaster />

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,6 @@ type LocationWrapperProps = {
 };
 
 export function LocationWrapper({ locations, children }: LocationWrapperProps) {
-  console.log(locations);
   const {
     selectedLocation,
     hasHydrated,
@@ -54,6 +54,17 @@ export function LocationWrapper({ locations, children }: LocationWrapperProps) {
     setSelectedLocation,
     validSelectedLocation,
   ]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    if (!validSelectedLocation) {
+      document.cookie = `${LOCATION_ID_COOKIE_KEY}=; path=/; max-age=0; SameSite=Lax`;
+      return;
+    }
+
+    document.cookie = `${LOCATION_ID_COOKIE_KEY}=${encodeURIComponent(validSelectedLocation.id)}; path=/; max-age=31536000; SameSite=Lax`;
+  }, [hasHydrated, validSelectedLocation]);
 
   const mustSelectLocation =
     hasHydrated && locations.length > 1 && !validSelectedLocation;

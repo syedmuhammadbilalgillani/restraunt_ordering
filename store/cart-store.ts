@@ -1,10 +1,10 @@
+import { CartItem, Item } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { CartItem, MenuItem } from "@/types";
 
 interface CartState {
   items: CartItem[];
-  addItem: (item: MenuItem) => void;
+  addItem: (item: Item) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -44,7 +44,7 @@ export const useCartStore = create<CartState>()(
           };
         }),
       clearCart: () => set({ items: [] }),
-      total: () => get().items.reduce((sum, i) => sum + i.menuItem.price * i.quantity, 0),
+      total: () => get().items.reduce((sum, i) => sum + i.menuItem.basePrice * i.quantity, 0),
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
     { name: "foodhub-cart" }

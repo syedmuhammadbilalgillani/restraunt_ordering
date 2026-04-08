@@ -1,159 +1,140 @@
-"use client";
-
-import { useQuery } from "@tanstack/react-query";
-import { fetchMenuItem, fetchMenuItems } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { MenuCard } from "@/components/menu-card";
-import { useCartStore } from "@/store/cart-store";
-import { useState } from "react";
-import { Minus, Plus, ArrowLeft, Star, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { useParams, useRouter } from "next/navigation";
+import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
+import { getAllMenuItemsByCategory, getMenuItemById } from "@/lib/api";
+import { ArrowLeft } from "lucide-react";
+import { cookies } from "next/headers";
+import Link from "next/link";
+import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function ProductDetailsPage() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useRouter();
-  const addItem = useCartStore((s) => s.addItem);
-  const [quantity, setQuantity] = useState(1);
+type ItemPageProps = {
+  params: Promise<{ id: string }>;
+};
 
-  const { data: item, isLoading } = useQuery({
-    queryKey: ["menuItem", id],
-    queryFn: () => fetchMenuItem(id!),
-    enabled: !!id,
-  });
+export default async function ProductDetailsPage({ params }: ItemPageProps) {
+  const { id } = await params;
+  const cookieStore = await cookies();
+  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
 
-  const { data: related } = useQuery({
-    queryKey: ["related", item?.categoryId],
-    queryFn: () => fetchMenuItems(item?.categoryId),
-    enabled: !!item?.categoryId,
-  });
-
-  const relatedItems = related?.filter((i) => i.id !== id).slice(0, 3);
-
-  const handleAddToCart = () => {
-    if (!item) return;
-    for (let i = 0; i < quantity; i++) addItem(item);
-    toast.success(`${quantity}x ${item.name} added to cart`);
-    setQuantity(1);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container py-8 space-y-6">
-        <Skeleton className="h-8 w-32" />
-        <div className="grid md:grid-cols-2 gap-8">
-          <Skeleton className="aspect-square rounded-2xl" />
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-12 w-40" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const itemResponse = await getMenuItemById({ id, locationId });
+  const item = itemResponse.data;
 
   if (!item) {
     return (
       <div className="container py-20 text-center">
         <p className="text-muted-foreground text-lg">Item not found</p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => navigate.push("/menu")}
-        >
-          Back to Menu
+        <Button variant="outline" className="mt-4" asChild>
+          <Link href="/menu">Back to Menu</Link>
         </Button>
       </div>
     );
   }
 
+  const related = await getAllMenuItemsByCategory({
+    params: {
+      categoryId: item.categoryId,
+      locationId: locationId || undefined,
+      limit: 6,
+      featured: false,
+    },
+  });
+  const relatedItems = related.data.items
+    .filter((ri) => ri.id !== id)
+    .slice(0, 3);
+
   return (
     <div className="min-h-screen">
       <div className="container py-8">
-        <Button
-          variant="ghost"
-          className="gap-2 mb-6"
-          onClick={() => navigate.back()}
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
+        <Button variant="ghost" className="gap-2 mb-6" asChild>
+          <Link href="/menu">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
         </Button>
 
         <div className="grid md:grid-cols-2 gap-8">
+          {item.imageUrl ? (
           <div className="rounded-2xl overflow-hidden shadow-lg">
-            <img
-              src={item.image}
+            <Image
+              height={712}
+              width={712}
+              src={item.imageUrl || ""}
               alt={item.name}
               className="object-cover w-full aspect-square"
             />
           </div>
-
-          <div className="flex flex-col">
-            {item.tags && item.tags.length > 0 && (
-              <div className="flex gap-2 mb-3">
-                {item.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <h1 className="font-display text-3xl font-bold">{item.name}</h1>
-            <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-warning text-warning" />{" "}
-                {item.rating}
-              </span>
-              {item.calories && <span>{item.calories} cal</span>}
+          ) : (
+            <div className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500">
+              <Skeleton className="aspect-square" />
             </div>
+          )}
+          <div className="flex flex-col">
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Badge variant="secondary">{item.menu.name}</Badge>
+              <Badge variant="secondary">{item.category.name}</Badge>
+              <Badge variant="outline">{item.uom}</Badge>
+              {item.isFeatured ? <Badge>Featured</Badge> : null}
+            </div>
+
+            <h1 className="font-display text-3xl font-bold">{item.name}</h1>
             <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-              {item.description}
+              {item.description || "No description available."}
             </p>
 
-            <div className="mt-8">
-              <span className="font-display text-4xl font-bold text-primary">
-                ${item.price.toFixed(2)}
-              </span>
+            <div className="mt-6 space-y-1 text-sm text-muted-foreground">
+              <p>SKU: {item.sku}</p>
+              <p>Base Price: PKR {item.basePrice}</p>
+              {item.discountPrice ? (
+                <p>Discount Price: PKR {item.discountPrice}</p>
+              ) : null}
+              {item.compareAtPrice ? (
+                <p>Compare At Price: PKR {item.compareAtPrice}</p>
+              ) : null}
+              {item.prepTimeSeconds ? (
+                <p>Prep Time: {Math.ceil(item.prepTimeSeconds / 60)} min</p>
+              ) : null}
             </div>
-
-            <div className="flex items-center gap-4 mt-6">
-              <div className="flex items-center gap-3 border rounded-xl px-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="font-display font-bold text-lg w-8 text-center">
-                  {quantity}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10"
-                  onClick={() => setQuantity(quantity + 1)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button
-                size="lg"
-                className="flex-1 rounded-xl gap-2"
-                onClick={handleAddToCart}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                Add to Cart · ${(item.price * quantity).toFixed(2)}
-              </Button>
+            {item.modifierGroups.length > 0 ? (
+          <section className="mt-12">
+            <h2 className="font-display text-2xl font-bold mb-4">
+              Customize Your Item
+            </h2>
+            <div className="space-y-4">
+              {item.modifierGroups.map((group) => (
+                <div key={group.id} className="rounded-xl border p-4">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <h3 className="font-semibold">{group.name}</h3>
+                    <Badge variant="outline">{group.selectionType}</Badge>
+                    {group.isRequired ? <Badge>Required</Badge> : null}
+                    <Badge variant="secondary">
+                      {group.minSelections} - {group.maxSelections} selections
+                    </Badge>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {group.modifiers.map((modifier) => (
+                      <div
+                        key={modifier.id}
+                        className="rounded-lg border border-dashed px-3 py-2 text-sm flex items-center justify-between"
+                      >
+                        <span>{modifier.name}</span>
+                        <span className="text-muted-foreground">
+                          +PKR {modifier.priceDelta}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
+          </section>
+        ) : null}
           </div>
         </div>
 
-        {relatedItems && relatedItems.length > 0 && (
+       
+
+        {relatedItems.length > 0 ? (
           <section className="mt-16">
             <h2 className="font-display text-2xl font-bold mb-6">
               You might also like
@@ -164,7 +145,7 @@ export default function ProductDetailsPage() {
               ))}
             </div>
           </section>
-        )}
+        ) : null}
       </div>
     </div>
   );

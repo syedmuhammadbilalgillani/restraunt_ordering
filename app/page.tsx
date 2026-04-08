@@ -1,15 +1,34 @@
+import { MenuCard } from "@/components/menu-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
 // import { Skeleton } from "@/components/ui/skeleton";
-import { getAllMenuCategoriesByLocation } from "@/lib/api";
+import {
+  getAllMenuCategoriesByLocation,
+  getAllMenuItemsByCategory,
+} from "@/lib/api";
 // import { categories } from "@/lib/mock-data";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ChevronRight, Clock, Truck, Utensils } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export default async function HomePage() {
-  const menuCategories = await getAllMenuCategoriesByLocation();
+  const cookieStore = await cookies();
+  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
 
-  console.log(menuCategories);
+  const menuCategories = await getAllMenuCategoriesByLocation({
+    locationId: locationId || undefined,
+  });
+  const menuItems = await getAllMenuItemsByCategory({
+    params: {
+      locationId: locationId || undefined,
+      limit: 20,
+      featured: true,
+    },
+  });
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -77,47 +96,46 @@ export default async function HomePage() {
           </Button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-          {/* {catLoading
-            ? Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-3">
-                    <Skeleton className="aspect-square rounded-lg" />
-                    <Skeleton className="h-4 mt-2" />
-                  </CardContent>
-                </Card>
-              )) */}
-          {/* :{" "} */}
-          {menuCategories?.categories?.map((cat) => (
-            <Link
-              href={`/menu?category=${cat.id}`}
-              key={cat.id}
-              className="group"
-            >
-              <Card className="overflow-hidden hover:shadow-md transition-all hover:-translate-y-1">
-                <CardContent className="p-3 text-center">
-                  <div className="aspect-square rounded-lg overflow-hidden mb-2">
-                    <img
-                      src={cat?.imageUrl || ""}
-                      alt={cat.name}
-                      loading="lazy"
-                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {cat.name}
-                  </span>
-                  <p className="text-xs text-muted-foreground">
-                    {/* {cat.itemCount} items */}
-                  </p>
+          <Suspense
+            fallback={Array.from({ length: 8 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-3">
+                  <Skeleton className="aspect-square rounded-lg" />
+                  <Skeleton className="h-4 mt-2" />
                 </CardContent>
               </Card>
-            </Link>
-          ))}
+            ))}
+          >
+            {menuCategories?.categories?.map((cat) => (
+              <Link
+                href={`/menu?category=${cat.id}`}
+                key={cat.id}
+                className="group"
+              >
+                <Card className="overflow-hidden hover:shadow-md transition-all hover:-translate-y-1">
+                  <CardContent className="p-3 text-center">
+                    <div className="aspect-square rounded-lg overflow-hidden mb-2">
+                      <img
+                        src={cat?.imageUrl || ""}
+                        alt={cat.name}
+                        loading="lazy"
+                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{cat.name}</span>
+                    <p className="text-xs text-muted-foreground">
+                      {/* {cat.itemCount} items */}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </Suspense>
         </div>
       </section>
 
       {/* Popular Items */}
-      {/* <section className="container pb-16">
+      <section className="container pb-16">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-display text-2xl font-bold">Popular Items</h2>
           <Button variant="ghost" size="sm" className="gap-1" asChild>
@@ -127,22 +145,31 @@ export default async function HomePage() {
           </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuLoading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <Skeleton className="aspect-4/3" />
-                  <CardContent className="p-4 space-y-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-1/3" />
-                  </CardContent>
-                </Card>
-              ))
-            : popularItems?.map((item) => (
+          <Suspense
+            fallback={Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="aspect-4/3" />
+                <CardContent className="p-4 space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-1/3" />
+                </CardContent>
+              </Card>
+            ))}
+          >
+            {menuItems.data.items.length > 0 ? (
+              menuItems.data.items.map((item) => (
                 <MenuCard key={item.id} item={item} />
-              ))}
+              ))
+            ) : (
+              <div className="text-center py-20 text-muted-foreground col-span-full">
+                <p className="text-lg">No items found</p>
+                {/* <p className="text-sm mt-1">Try a different search or category</p> */}
+              </div>
+            )}
+          </Suspense>
         </div>
-      </section> */}
+      </section>
     </div>
   );
 }

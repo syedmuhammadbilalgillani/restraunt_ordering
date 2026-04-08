@@ -1,5 +1,13 @@
 import { CACHE_TAGS } from "@/constants/cache-tags";
-import { Category, Location, MenuCategory, MenuItem, Order } from "@/types";
+import {
+  Category,
+  ItemsResponse,
+  Location,
+  MenuItemByIdResponse,
+  MenuCategory,
+  MenuItem,
+  Order,
+} from "@/types";
 import { unstable_cache } from "next/cache";
 import { apiClient } from "./apiClient";
 import { categories, menuItems, mockOrders } from "./mock-data";
@@ -52,15 +60,102 @@ export const getAllLocations = unstable_cache(
   },
 );
 export const getAllMenuCategoriesByLocation = unstable_cache(
-  async () => {
-    const response = await apiClient.get<{ data: MenuCategory }>(
-      `/menu/categories`,
+  async ({
+    locationId,
+  }: {
+    locationId?: string;
+  }): Promise<MenuCategory> => {
+    const response = await apiClient.get<{ data: MenuCategory }>(`/menu/categories`, {
+      ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
+    });
+    return (
+      response?.data?.data || {
+        menu: [],
+        categories: [],
+      }
     );
-    return (response?.data?.data as MenuCategory) || [];
   },
   [CACHE_TAGS.MENU_CATEGORIES_BY_LOCATION],
   {
     tags: [CACHE_TAGS.MENU_CATEGORIES_BY_LOCATION],
+    revalidate: REVALIDATE_TIME,
+  },
+);
+
+export const getAllMenuItemsByCategory = unstable_cache(
+  async ({
+    params = {
+      categoryId: undefined,
+      locationId: undefined,
+      limit: 20,
+      featured: true,
+    },
+  }: {
+    params: {
+      categoryId?: string;
+      locationId?: string;
+      limit?: number;
+      featured?: boolean;
+    };
+  }): Promise<ItemsResponse> => {
+    const { categoryId, locationId, limit, featured } = params;
+    const queryParams = new URLSearchParams();
+    if (categoryId) queryParams.set("categoryId", categoryId);
+    if (locationId) queryParams.set("locationId", locationId);
+    if (limit) queryParams.set("limit", limit.toString());
+    if (featured) queryParams.set("featured", featured.toString());
+    const response = await apiClient.get<ItemsResponse>(
+      `/menu/items/popular?${queryParams.toString()}`,
+    );
+    if (response?.data?.success === false || !response?.data?.data) {
+      return {
+        success: false,
+        data: {
+          items: [],
+        },
+        error: response?.data?.error || {
+          code: "INTERNAL_ERROR",
+          message: "Failed to load featured menu items",
+        },
+      };
+    }
+    return response.data;
+  },
+  [CACHE_TAGS.MENU_ITEMS_BY_CATEGORY],
+  {
+    tags: [CACHE_TAGS.MENU_ITEMS_BY_CATEGORY],
+    revalidate: REVALIDATE_TIME,
+  },
+);
+
+export const getMenuItemById = unstable_cache(
+  async ({
+    id,
+    locationId,
+  }: {
+    id: string;
+    locationId?: string;
+  }): Promise<MenuItemByIdResponse> => {
+    const response = await apiClient.get<MenuItemByIdResponse>(`/menu/items/${id}`, {
+      ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
+    });
+
+    if (response?.data?.success === false || !response?.data?.data) {
+      return {
+        success: false,
+        data: null,
+        error: response?.data?.error || {
+          code: "INTERNAL_ERROR",
+          message: "Failed to load menu item",
+        },
+      };
+    }
+
+    return response.data;
+  },
+  [CACHE_TAGS.MENU_ITEM_BY_ID],
+  {
+    tags: [CACHE_TAGS.MENU_ITEM_BY_ID],
     revalidate: REVALIDATE_TIME,
   },
 );

@@ -20,7 +20,7 @@ export interface MenuItem {
 }
 
 export interface CartItem {
-  menuItem: MenuItem;
+  menuItem: Item;
   quantity: number;
 }
 
@@ -58,9 +58,9 @@ export interface Location {
   id: string;
   name: string;
   slug: string;
-  code: string;
-  longitude: string;
-  latitude: string;
+  code?: string;
+  longitude?: string;
+  latitude?: string;
 }
 
 export interface MenuCategory {
@@ -75,4 +75,93 @@ export interface MenuCategory {
     imageUrl: string | null;
     displayOrder: number;
   }[];
+}
+export interface Item {
+  id: string;
+  categoryId: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  uom: string;
+  basePrice: number;
+  compareAtPrice: string | null;
+  discountPrice: string | null;
+  isFeatured: boolean;
+  displayOrder: number;
+  prepTimeSeconds: number | null;
+}
+export interface MenuItemsMeta {
+  tenantId: string;
+  tenantSlug: string;
+  isMultiLocation: boolean;
+  location: Location | null;
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+}
+
+export interface Modifier {
+  id: string;
+  name: string;
+  priceDelta: string;
+  displayOrder: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  selectionType: "single" | "multiple";
+  minSelections: number;
+  maxSelections: number;
+  isRequired: boolean;
+  displayOrder: number;
+  modifiers: Modifier[];
+}
+
+export interface MenuReference {
+  id: string;
+  name: string;
+}
+
+export interface CategoryReference {
+  id: string;
+  name: string;
+}
+
+export interface MenuItemDetails {
+  id: string;
+  categoryId: string;
+  sku: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  uom: string;
+  basePrice: string;
+  compareAtPrice: string | null;
+  discountPrice: string | null;
+  isFeatured: boolean;
+  displayOrder: number;
+  prepTimeSeconds: number | null;
+  modifierGroups: ModifierGroup[];
+  menu: MenuReference;
+  category: CategoryReference;
+}
+
+export interface ItemsResponse {
+  success: boolean;
+  data: {
+    items: Item[];
+  };
+  meta?: MenuItemsMeta;
+  error?: ApiError;
+}
+
+export interface MenuItemByIdResponse {
+  success: boolean;
+  data: MenuItemDetails | null;
+  meta?: MenuItemsMeta;
+  error?: ApiError;
 }

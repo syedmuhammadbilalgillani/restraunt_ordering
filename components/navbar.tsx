@@ -9,13 +9,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/auth-store";
 import { useCartStore } from "@/store/cart-store";
+import { Location } from "@/types";
 import { LogOut, Menu, ShoppingCart, User, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LocationSelect } from "./location-select";
 import { ThemeToggle } from "./theme-toggle";
 
-export function Navbar() {
+type NavbarProps = {
+  locations: Location[];
+};
+
+export function Navbar({ locations }: NavbarProps) {
   const itemCount = useCartStore((s) => s.itemCount());
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useRouter();
@@ -56,6 +62,8 @@ export function Navbar() {
               <Link href="/orders">Orders</Link>
             </Button>
           )}
+
+          <LocationSelect locations={locations} compact />
 
           <ThemeToggle />
 
@@ -144,6 +152,9 @@ export function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t bg-background animate-slide-up">
           <nav className="container flex flex-col py-4 gap-1">
+            <div className="px-3 pb-2">
+              <LocationSelect locations={locations} />
+            </div>
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}
