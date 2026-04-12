@@ -7,7 +7,7 @@ import {
   MenuItem,
   MenuItemByIdResponse,
   PublicMenuBootstrapResponse,
-  PublicMenuItemsResponse
+  PublicMenuItemsResponse,
 } from "@/types";
 import { unstable_cache } from "next/cache";
 import { apiClient } from "./apiClient";
@@ -34,7 +34,6 @@ export async function fetchMenuItem(id: string): Promise<MenuItem | undefined> {
   return menuItems.find((i) => i.id === id);
 }
 
-
 export async function searchMenuItems(query: string): Promise<MenuItem[]> {
   await delay(300);
   const lower = query.toLowerCase();
@@ -47,8 +46,9 @@ export async function searchMenuItems(query: string): Promise<MenuItem[]> {
 
 export const getAllLocations = unstable_cache(
   async () => {
-    const response = await apiClient.get<{ data: Location[] }>("/locations");
-    return (response?.data?.data as Location[]) || [];
+    const response = await apiClient.get<Location[]>("/locations");
+    console.log(response.data, "location data");
+    return (response?.data as Location[]) || [];
   },
   [CACHE_TAGS.LOCATION],
   {
@@ -57,14 +57,13 @@ export const getAllLocations = unstable_cache(
   },
 );
 export const getAllMenuCategoriesByLocation = unstable_cache(
-  async ({
-    locationId,
-  }: {
-    locationId?: string;
-  }): Promise<MenuCategory> => {
-    const response = await apiClient.get<{ data: MenuCategory }>(`/public/menu/categories`, {
-      ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
-    });
+  async ({ locationId }: { locationId?: string }): Promise<MenuCategory> => {
+    const response = await apiClient.get<{ data: MenuCategory }>(
+      `/public/menu/categories`,
+      {
+        ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
+      },
+    );
     return (
       response?.data?.data || {
         menu: [],
@@ -102,7 +101,7 @@ export const getAllMenuItemsByCategory = unstable_cache(
     if (limit) queryParams.set("limit", limit.toString());
     if (featured) queryParams.set("featured", featured.toString());
     const response = await apiClient.get<ItemsResponse>(
-      `/menu/items/popular?${queryParams.toString()}`,
+      `/public/menu/items/popular?${queryParams.toString()}`,
     );
     if (response?.data?.success === false || !response?.data?.data) {
       return {
@@ -133,9 +132,12 @@ export const getMenuItemById = unstable_cache(
     id: string;
     locationId?: string;
   }): Promise<MenuItemByIdResponse> => {
-    const response = await apiClient.get<MenuItemByIdResponse>(`/menu/items/${id}`, {
-      ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
-    });
+    const response = await apiClient.get<MenuItemByIdResponse>(
+      `/public/menu/items/${id}`,
+      {
+        ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
+      },
+    );
 
     if (response?.data?.success === false || !response?.data?.data) {
       return {
@@ -162,7 +164,7 @@ export async function getPublicMenuBootstrap(params: {
   menuId?: string;
 }): Promise<PublicMenuBootstrapResponse> {
   const response = await apiClient.get<PublicMenuBootstrapResponse>(
-    "/menu/bootstrap",
+    "/menus/bootstrap",
     {
       params: {
         locationId: params.locationId,
@@ -171,10 +173,10 @@ export async function getPublicMenuBootstrap(params: {
     },
   );
 
-  if (response?.data?.success === false || !response?.data?.data) {
+  if (response?.data?.success === false || !response?.data) {
     return {
       success: false,
-      data: {
+      meta: {
         menu: null,
         categories: [],
       },
@@ -195,15 +197,18 @@ export async function getPublicMenuItems(params: {
   limit?: number;
   cursor?: string | null;
 }): Promise<PublicMenuItemsResponse> {
-  const response = await apiClient.get<PublicMenuItemsResponse>("/menu/items", {
-    params: {
-      locationId: params.locationId,
-      categoryId: params.categoryId,
-      menuId: params.menuId,
-      limit: params.limit ?? 20,
-      cursor: params.cursor || undefined,
+  const response = await apiClient.get<PublicMenuItemsResponse>(
+    "/menus/items",
+    {
+      params: {
+        locationId: params.locationId,
+        categoryId: params.categoryId,
+        menuId: params.menuId,
+        limit: params.limit ?? 20,
+        cursor: params.cursor || undefined,
+      },
     },
-  });
+  );
 
   if (response?.data?.success === false || !response?.data?.data) {
     return {

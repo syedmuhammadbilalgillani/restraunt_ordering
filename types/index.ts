@@ -117,11 +117,11 @@ export interface PublicMenuMeta extends MenuItemsMeta {
 
 export interface PublicMenuBootstrapResponse {
   success: boolean;
-  data: {
+  meta: {
     menu: PublicMenuBootstrapMenu | null;
     categories: PublicMenuBootstrapCategory[];
   };
-  meta?: PublicMenuMeta;
+  // meta?: PublicMenuMeta;
   error?: ApiError;
 }
 

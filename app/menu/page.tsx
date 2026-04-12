@@ -60,8 +60,9 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
       limit: 20,
     }),
   ]);
+  console.log(bootstrapData, 'bootstrap data');
 
-  const tabs = bootstrapData?.data?.categories || [];
+  const tabs = bootstrapData?.meta?.categories || [];
   const menuItems = menuItemsResponse?.data?.items || [];
   const hasMore = menuItemsResponse?.data?.hasMore;
   const nextCursor = menuItemsResponse?.data?.nextCursor || undefined;
