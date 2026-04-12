@@ -62,7 +62,7 @@ export const getAllMenuCategoriesByLocation = unstable_cache(
   }: {
     locationId?: string;
   }): Promise<MenuCategory> => {
-    const response = await apiClient.get<{ data: MenuCategory }>(`/menu/categories`, {
+    const response = await apiClient.get<{ data: MenuCategory }>(`/public/menu/categories`, {
       ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
     });
     return (
