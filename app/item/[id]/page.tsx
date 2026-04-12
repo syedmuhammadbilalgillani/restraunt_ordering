@@ -95,13 +95,13 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
                 <p>Prep Time: {Math.ceil(item.prepTimeSeconds / 60)} min</p>
               ) : null}
             </div>
-            {item.modifierGroups.length > 0 ? (
+            {item.modifierGroups && item.modifierGroups.length > 0 ? (
           <section className="mt-12">
             <h2 className="font-display text-2xl font-bold mb-4">
               Customize Your Item
             </h2>
             <div className="space-y-4">
-              {item.modifierGroups.map((group) => (
+              {item.modifierGroups?.map((group) => (
                 <div key={group.id} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <h3 className="font-semibold">{group.name}</h3>
