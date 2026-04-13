@@ -25,7 +25,8 @@ export function MenuCard({ item }: MenuCardProps) {
     // if (!canAddToCart) return;
     e.preventDefault();
     e.stopPropagation();
-    addItem(item);
+    console.log(item, "item");
+    addItem({ menuItem: item, quantity: 1, modifiers: [] });
     toast.success(`${itemName} added to cart`);
   };
 

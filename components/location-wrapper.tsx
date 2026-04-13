@@ -18,7 +18,10 @@ type LocationWrapperProps = {
   children: React.ReactNode;
 };
 
-export function LocationWrapper({ locations, children }: LocationWrapperProps) {
+export function LocationWrapper({
+  locations = [],
+  children,
+}: LocationWrapperProps) {
   const {
     selectedLocation,
     hasHydrated,
@@ -29,7 +32,9 @@ export function LocationWrapper({ locations, children }: LocationWrapperProps) {
 
   const validSelectedLocation = useMemo(() => {
     if (!selectedLocation) return null;
-    return locations.find((location) => location.id === selectedLocation.id) ?? null;
+    return (
+      locations.find((location) => location.id === selectedLocation.id) ?? null
+    );
   }, [locations, selectedLocation]);
 
   useEffect(() => {
@@ -42,7 +47,10 @@ export function LocationWrapper({ locations, children }: LocationWrapperProps) {
 
     if (locations.length === 1) {
       const [onlyLocation] = locations;
-      if (!validSelectedLocation || validSelectedLocation.id !== onlyLocation.id) {
+      if (
+        !validSelectedLocation ||
+        validSelectedLocation.id !== onlyLocation.id
+      ) {
         setSelectedLocation(onlyLocation);
       }
       return;
@@ -107,14 +115,19 @@ export function LocationWrapper({ locations, children }: LocationWrapperProps) {
               className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="">Select a location</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
+              {locations &&
+                locations?.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
             </select>
 
-            <Button className="w-full" onClick={handleConfirm} disabled={!pendingId}>
+            <Button
+              className="w-full"
+              onClick={handleConfirm}
+              disabled={!pendingId}
+            >
               Continue
             </Button>
           </div>

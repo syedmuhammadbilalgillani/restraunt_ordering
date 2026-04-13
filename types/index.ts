@@ -74,6 +74,7 @@ export interface MenuCategory {
     description: string | null;
     imageUrl: string | null;
     displayOrder: number;
+    slug: string;
   }[];
 }
 export interface Item {
@@ -210,4 +211,77 @@ export interface MenuItemByIdResponse {
   data: MenuItemDetails | null;
   meta?: MenuItemsMeta;
   error?: ApiError;
+}
+
+
+
+export interface CartLineModifier {
+  modifierId: string;
+  /** Display only; not sent to create-order API */
+  name?: string;
+  quantity?: number;
+  priceDelta?: number;
+}
+
+export interface CartItem {
+  /** Stable id per cart line (same menu item + different modifiers = different line) */
+  lineId: string;
+  menuItem: Item;
+  quantity: number;
+  specialInstructions?: string;
+  modifiers: CartLineModifier[];
+}
+
+// --- Online order API (matches your Nest DTO whitelist) ---
+export type OrderType = "dine_in" | "takeaway" | "delivery" | "catering";
+export type OrderSource =
+  | "pos"
+  | "online"
+  | "qr"
+  | "kiosk"
+  | "whatsapp"
+  | "aggregator"
+  | "group";
+
+export interface CreateOnlineOrderLineModifier {
+  modifierId: string;
+  quantity?: number;
+}
+
+export interface CreateOnlineOrderLine {
+  menuItemId: string;
+  quantity: number;
+  specialInstructions?: string;
+  modifiers?: CreateOnlineOrderLineModifier[];
+}
+
+export interface CreateOnlineOrderPayload {
+  locationId: string;
+  orderType: OrderType;
+  orderSource: OrderSource;
+  lines: CreateOnlineOrderLine[];
+  customerId?: string;
+  deliveryAddressId?: string;
+  customerNotes?: string;
+  kitchenNotes?: string;
+  discountCode?: string;
+  discountId?: string;
+  tableNumber?: string;
+  qrCodeId?: string;
+  groupSessionId?: string;
+  kioskTerminalId?: string;
+}
+
+/** Adjust fields to match your actual `.returning()` row */
+export interface OnlineOrderResponse {
+  id: string;
+  orderNumber?: string;
+  status?: string;
+  paymentStatus?: string;
+  subtotal?: string | number;
+  discountAmount?: string | number;
+  total?: string | number;
+  currency?: string;
+  createdAt?: string;
+  [key: string]: unknown;
 }

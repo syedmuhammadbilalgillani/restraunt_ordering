@@ -61,6 +61,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
     }),
   ]);
   console.log(bootstrapData, 'bootstrap data');
+  console.log(menuItemsResponse, 'menu items response');
 
   const tabs = bootstrapData?.meta?.categories || [];
   const menuItems = menuItemsResponse?.data?.items || [];

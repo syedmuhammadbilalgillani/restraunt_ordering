@@ -19,6 +19,16 @@ export default async function HomePage() {
   const cookieStore = await cookies();
   const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
 
+  // console.log(locationId, "locationId");
+  // if (!locationId) {
+  //   return (
+  //     <div className="min-h-screen">
+  //       <div className="container py-20 text-center text-muted-foreground">
+  //         <p className="text-lg">Please select a location first.</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
   const menuCategories = await getAllMenuCategoriesByLocation({
     locationId: locationId || undefined,
   });
@@ -29,7 +39,8 @@ export default async function HomePage() {
       featured: true,
     },
   });
-
+  console.log(menuCategories, "menuCategories");
+  console.log(menuItems, "menuItems");
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -117,14 +128,14 @@ export default async function HomePage() {
                   <CardContent className="p-3 text-center">
                     <div className="aspect-square rounded-lg overflow-hidden mb-2">
                       {cat?.imageUrl ? (
-                      <Image
-                        height={142}
-                        width={142}
-                        src={cat?.imageUrl || ""}
-                        alt={cat.name}
-                        loading="lazy"
-                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
-                      />
+                        <Image
+                          height={142}
+                          width={142}
+                          src={cat?.imageUrl || ""}
+                          alt={cat.name}
+                          loading="lazy"
+                          className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+                        />
                       ) : (
                         <Skeleton className="aspect-square rounded-lg" />
                       )}

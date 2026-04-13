@@ -18,13 +18,19 @@ type LocationSelectProps = {
   compact?: boolean;
 };
 
-export function LocationSelect({ locations, compact = false }: LocationSelectProps) {
-  const { selectedLocation, hasHydrated, setSelectedLocation } = useLocationStore();
+export function LocationSelect({
+  locations,
+  compact = false,
+}: LocationSelectProps) {
+  const { selectedLocation, hasHydrated, setSelectedLocation } =
+    useLocationStore();
   const router = useRouter();
-
+  console.log(selectedLocation, "selectedLocation");
   const activeLocation = useMemo(() => {
     if (!selectedLocation) return null;
-    return locations.find((location) => location.id === selectedLocation.id) ?? null;
+    return (
+      locations.find((location) => location.id === selectedLocation.id) ?? null
+    );
   }, [locations, selectedLocation]);
 
   if (!hasHydrated || locations.length <= 1) {
@@ -47,22 +53,23 @@ export function LocationSelect({ locations, compact = false }: LocationSelectPro
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        {locations.map((location) => {
-          const isActive = activeLocation?.id === location.id;
-          return (
-            <DropdownMenuItem
-              key={location.id}
-              onClick={() => {
-                setSelectedLocation(location);
-                router.refresh();
-              }}
-              className="flex items-center justify-between"
-            >
-              <span>{location.name}</span>
-              {isActive ? <Check className="h-4 w-4 text-primary" /> : null}
-            </DropdownMenuItem>
-          );
-        })}
+        {locations &&
+          locations?.map((location) => {
+            const isActive = activeLocation?.id === location.id;
+            return (
+              <DropdownMenuItem
+                key={location.id}
+                onClick={() => {
+                  setSelectedLocation(location);
+                  router.refresh();
+                }}
+                className="flex items-center justify-between"
+              >
+                <span>{location.name}</span>
+                {isActive ? <Check className="h-4 w-4 text-primary" /> : null}
+              </DropdownMenuItem>
+            );
+          })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

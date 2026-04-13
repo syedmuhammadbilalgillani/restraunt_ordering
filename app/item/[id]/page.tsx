@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ItemAddToCart } from "@/components/item-add-to-cart";
 
 type ItemPageProps = {
   params: Promise<{ id: string }>;
@@ -20,7 +21,7 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
 
   const itemResponse = await getMenuItemById({ id, locationId });
   const item = itemResponse.data;
-
+  console.log(item, "item");
   if (!item) {
     return (
       <div className="container py-20 text-center">
@@ -55,15 +56,15 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
 
         <div className="grid md:grid-cols-2 gap-8">
           {item.imageUrl ? (
-          <div className="rounded-2xl overflow-hidden shadow-lg">
-            <Image
-              height={712}
-              width={712}
-              src={item.imageUrl || ""}
-              alt={item.name}
-              className="object-cover w-full aspect-square"
-            />
-          </div>
+            <div className="rounded-2xl overflow-hidden shadow-lg">
+              <Image
+                height={712}
+                width={712}
+                src={item.imageUrl || ""}
+                alt={item.name}
+                className="object-cover w-full aspect-square"
+              />
+            </div>
           ) : (
             <div className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500">
               <Skeleton className="aspect-square" />
@@ -95,44 +96,45 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
                 <p>Prep Time: {Math.ceil(item.prepTimeSeconds / 60)} min</p>
               ) : null}
             </div>
-            {item.modifierGroups && item.modifierGroups.length > 0 ? (
-          <section className="mt-12">
-            <h2 className="font-display text-2xl font-bold mb-4">
-              Customize Your Item
-            </h2>
-            <div className="space-y-4">
-              {item.modifierGroups?.map((group) => (
-                <div key={group.id} className="rounded-xl border p-4">
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <h3 className="font-semibold">{group.name}</h3>
-                    <Badge variant="outline">{group.selectionType}</Badge>
-                    {group.isRequired ? <Badge>Required</Badge> : null}
-                    <Badge variant="secondary">
-                      {group.minSelections} - {group.maxSelections} selections
-                    </Badge>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    {group.modifiers.map((modifier) => (
-                      <div
-                        key={modifier.id}
-                        className="rounded-lg border border-dashed px-3 py-2 text-sm flex items-center justify-between"
-                      >
-                        <span>{modifier.name}</span>
-                        <span className="text-muted-foreground">
-                          +PKR {modifier.priceDelta}
-                        </span>
+            {/* {item.modifierGroups && item.modifierGroups.length > 0 ? (
+              <section className="mt-12">
+                <h2 className="font-display text-2xl font-bold mb-4">
+                  Customize Your Item
+                </h2>
+                <div className="space-y-4">
+                  {item.modifierGroups?.map((group) => (
+                    <div key={group.id} className="rounded-xl border p-4">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <h3 className="font-semibold">{group.name}</h3>
+                        <Badge variant="outline">{group.selectionType}</Badge>
+                        {group.isRequired ? <Badge>Required</Badge> : null}
+                        <Badge variant="secondary">
+                          {group.minSelections} - {group.maxSelections}{" "}
+                          selections
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        {group.modifiers.map((modifier) => (
+                          <div
+                            key={modifier.id}
+                            className="rounded-lg border border-dashed px-3 py-2 text-sm flex items-center justify-between"
+                          >
+                            <span>{modifier.name}</span>
+                            <span className="text-muted-foreground">
+                              +PKR {modifier.priceDelta}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+              </section>
+            ) : null} */}
+            <ItemAddToCart item={item} />
+
           </div>
         </div>
-
-       
 
         {relatedItems.length > 0 ? (
           <section className="mt-16">

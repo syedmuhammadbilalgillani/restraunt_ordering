@@ -1,18 +1,21 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cartToOrderLines, createOnlineOrder } from "@/lib/online-orders";
 import { useAuthStore } from "@/store/auth-store";
 import { useCartStore } from "@/store/cart-store";
+import { useLocationStore } from "@/store/location-store";
+import { CreateOnlineOrderPayload } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Banknote, CreditCard, Store, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,6 +39,10 @@ export default function CheckoutPage() {
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(
     "delivery",
   );
+  const { selectedLocation } = useLocationStore();
+  console.log(items, "items");
+  console.log(total(), "total");
+  console.log(itemCount(), "itemCount");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [loading, setLoading] = useState(false);
 
@@ -59,15 +66,50 @@ export default function CheckoutPage() {
     }
   }, [isAuthenticated, items.length, navigate]);
 
-  const onSubmit = async (_data: CheckoutForm) => {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    clearCart();
-    toast.success("Order placed successfully! 🎉");
-    navigate.push("/orders");
-    setLoading(false);
-  };
+  const onSubmit = async (data: CheckoutForm) => {
+    if (!selectedLocation?.id) {
+      toast.error("Please select a location first.");
+      return;
+    }
+    if (deliveryType === "delivery" && !user?.address) {
+      toast.error(
+        "Delivery requires a saved address. Choose pickup or add an address in your profile.",
+      );
+      return;
+    }
 
+    setLoading(true);
+    try {
+      const payload = {
+        locationId: selectedLocation.id,
+        orderType: deliveryType === "delivery" ? "delivery" : "takeaway",
+        orderSource: "online" as const,
+        lines: cartToOrderLines(items),
+        ...(deliveryType === "delivery" && user?.address
+          ? { deliveryAddressId: user.address }
+          : {}),
+        // ...(coupon.trim() ? { discountCode: coupon.trim() } : {}),
+        customerNotes: [data.name, data.phone, data.address]
+          .filter(Boolean)
+          .join(" · "),
+      };
+
+      const order = await createOnlineOrder(
+        payload as CreateOnlineOrderPayload,
+        { token: "accessToken" },
+      );
+      clearCart();
+      toast.success(
+        `Order placed${order.orderNumber ? ` #${order.orderNumber}` : ""}!`,
+      );
+      navigate.push("/orders");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not place order";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
   if (!isAuthenticated || items.length === 0) return null;
 
   return (
@@ -199,11 +241,8 @@ export default function CheckoutPage() {
             <div className="rounded-xl border bg-card p-6 sticky top-24 space-y-4">
               <h2 className="font-display text-xl font-bold">Order Summary</h2>
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {items.map((item) => (
-                  <div
-                    key={item.menuItem.id}
-                    className="flex justify-between text-sm"
-                  >
+                {items.map((item, index) => (
+                  <div key={index} className="flex justify-between text-sm">
                     <span>
                       {item.quantity}x {item.menuItem.name}
                     </span>

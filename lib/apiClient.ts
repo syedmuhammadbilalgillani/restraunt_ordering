@@ -143,8 +143,8 @@ async function request<T>(
         ? (responseBody as { message: string }).message
         : response.statusText || "Request failed";
 
-    // throw new ApiError(message, response.status, responseBody);
     console.log(message, response.status, responseBody, "response body");
+    // throw new ApiError(message, response.status, responseBody);
   }
 
   return {

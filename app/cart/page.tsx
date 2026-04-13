@@ -1,6 +1,8 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { lineTotal } from "@/lib/cart-math";
 import { useAuthStore } from "@/store/auth-store";
 import { useCartStore } from "@/store/cart-store";
 import { CartItem } from "@/types";
@@ -24,6 +26,10 @@ export default function CartPage() {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [coupon, setCoupon] = useState("");
+
+  console.log(items, "items");
+  console.log(total(), "total");
+  console.log(itemCount(), "itemCount");
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
@@ -52,7 +58,7 @@ export default function CartPage() {
       </div>
     );
   }
-
+  console.log(items, "items");
   return (
     <div className="min-h-screen">
       <div className="container py-8">
@@ -61,18 +67,22 @@ export default function CartPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Items */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item: CartItem, index: number) => (
+            {items.map((item: CartItem) => (
               <div
-                key={`${item.menuItem.id}-${index}`}
+                key={item.lineId}
                 className="flex gap-4 p-4 rounded-xl border bg-card"
               >
-                <Image
-                  height={96}
-                  width={96}
-                  src={item.menuItem.imageUrl ?? ""}
-                  alt={item.menuItem.name}
-                  className="h-24 w-24 rounded-lg object-cover"
-                />
+                {item.menuItem.imageUrl ? (
+                  <Image
+                    height={96}
+                    width={96}
+                    src={item.menuItem.imageUrl ?? ""}
+                    alt={item.menuItem.name}
+                    className="h-24 w-24 rounded-lg object-cover"
+                  />
+                ) : (
+                  <Skeleton className="h-24 w-24 rounded-lg object-cover" />
+                )}
                 <div className="flex-1 min-w-0">
                   <Link
                     href={`/item/${item.menuItem.id}`}
@@ -90,7 +100,7 @@ export default function CartPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() =>
-                          updateQuantity(item.menuItem.id, item.quantity - 1)
+                          updateQuantity(item.lineId, item.quantity - 1)
                         }
                       >
                         <Minus className="h-3 w-3" />
@@ -103,7 +113,7 @@ export default function CartPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() =>
-                          updateQuantity(item.menuItem.id, item.quantity + 1)
+                          updateQuantity(item.lineId, item.quantity + 1)
                         }
                       >
                         <Plus className="h-3 w-3" />
@@ -111,14 +121,24 @@ export default function CartPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-display font-bold text-primary">
-                        ${(item.menuItem.basePrice * item.quantity).toFixed(2)}
+                        ${lineTotal(item).toFixed(2)}
                       </span>
+                      {item.modifiers.length > 0 && (
+                        <ul className="text-xs text-muted-foreground mt-1">
+                          {item.modifiers.map((m) => (
+                            <li key={m.modifierId}>
+                              {m.name ?? m.modifierId}
+                              {(m.quantity ?? 1) > 1 ? ` ×${m.quantity}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
                         onClick={() => {
-                          removeItem(item.menuItem.id);
+                          removeItem(item.lineId);
                           toast("Item removed");
                         }}
                       >

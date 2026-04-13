@@ -46,9 +46,16 @@ export async function searchMenuItems(query: string): Promise<MenuItem[]> {
 
 export const getAllLocations = unstable_cache(
   async () => {
-    const response = await apiClient.get<Location[]>("/locations");
-    console.log(response.data, "location data");
-    return (response?.data as Location[]) || [];
+    try {
+      const response = await apiClient.get<Location[]>("/locations");
+      console.log(response.data, "location data");
+      return Array.isArray(response?.data)
+        ? (response?.data as Location[])
+        : [];
+    } catch (error) {
+      console.log(error, "error");
+      return [];
+    }
   },
   [CACHE_TAGS.LOCATION],
   {
@@ -65,6 +72,7 @@ export const getAllMenuCategoriesByLocation = unstable_cache(
       },
     );
     return (
+      console.log(response?.data?.data, "menu category data"),
       response?.data?.data || {
         menu: [],
         categories: [],
