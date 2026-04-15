@@ -9,20 +9,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ItemAddToCart } from "@/components/item-add-to-cart";
+import { MenuItemDetails } from "@/types";
 
 type ItemPageProps = {
-  params: Promise<{ id: string }>;
+  params: Promise<{ item: string }>;
 };
 
 export default async function ProductDetailsPage({ params }: ItemPageProps) {
-  const { id } = await params;
+  const { item } = await params;
   const cookieStore = await cookies();
   const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
 
-  const itemResponse = await getMenuItemById({ id, locationId });
-  const item = itemResponse.data;
+  const itemResponse = await getMenuItemById({
+    slug: decodeURIComponent(item),
+    locationId,
+  });
+  const itemData = itemResponse?.data;
   console.log(item, "item");
-  if (!item) {
+  if (!itemData) {
     return (
       <div className="container py-20 text-center">
         <p className="text-muted-foreground text-lg">Item not found</p>
@@ -35,14 +39,14 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
 
   const related = await getAllMenuItemsByCategory({
     params: {
-      categoryId: item.categoryId,
+      categoryId: itemData?.categoryId,
       locationId: locationId || undefined,
       limit: 6,
       featured: false,
     },
   });
   const relatedItems = related.data.items
-    .filter((ri) => ri.id !== id)
+    .filter((ri) => ri.id !== item)
     .slice(0, 3);
 
   return (
@@ -55,13 +59,13 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
         </Button>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {item.imageUrl ? (
+          {itemData?.imageUrl ? (
             <div className="rounded-2xl overflow-hidden shadow-lg">
               <Image
                 height={712}
                 width={712}
-                src={item.imageUrl || ""}
-                alt={item.name}
+                src={itemData?.imageUrl || ""}
+                alt={itemData?.name}
                 className="object-cover w-full aspect-square"
               />
             </div>
@@ -72,37 +76,41 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
           )}
           <div className="flex flex-col">
             <div className="flex flex-wrap gap-2 mb-3">
-              <Badge variant="secondary">{item.menu.name}</Badge>
-              <Badge variant="secondary">{item.category.name}</Badge>
-              <Badge variant="outline">{item.uom}</Badge>
-              {item.isFeatured ? <Badge>Featured</Badge> : null}
+              <Badge variant="secondary">{itemData?.menu.name}</Badge>
+              <Badge variant="secondary">{itemData?.category.name}</Badge>
+              <Badge variant="outline">{itemData?.uom}</Badge>
+              {itemData?.isFeatured ? <Badge>Featured</Badge> : null}
             </div>
 
-            <h1 className="font-display text-3xl font-bold">{item.name}</h1>
+            <h1 className="font-display text-3xl font-bold">
+              {itemData?.name}
+            </h1>
             <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-              {item.description || "No description available."}
+              {itemData?.description || "No description available."}
             </p>
 
             <div className="mt-6 space-y-1 text-sm text-muted-foreground">
-              <p>SKU: {item.sku}</p>
-              <p>Base Price: PKR {item.basePrice}</p>
-              {item.discountPrice ? (
-                <p>Discount Price: PKR {item.discountPrice}</p>
+              <p>SKU: {itemData?.sku}</p>
+              <p>Base Price: PKR {itemData?.basePrice}</p>
+              {itemData?.discountPrice ? (
+                <p>Discount Price: PKR {itemData?.discountPrice}</p>
               ) : null}
-              {item.compareAtPrice ? (
-                <p>Compare At Price: PKR {item.compareAtPrice}</p>
+              {itemData?.compareAtPrice ? (
+                <p>Compare At Price: PKR {itemData?.compareAtPrice}</p>
               ) : null}
-              {item.prepTimeSeconds ? (
-                <p>Prep Time: {Math.ceil(item.prepTimeSeconds / 60)} min</p>
+              {itemData?.prepTimeSeconds ? (
+                <p>
+                  Prep Time: {Math.ceil(itemData?.prepTimeSeconds / 60)} min
+                </p>
               ) : null}
             </div>
-            {/* {item.modifierGroups && item.modifierGroups.length > 0 ? (
+            {/* {itemData?.modifierGroups && itemData?.modifierGroups.length > 0 ? (
               <section className="mt-12">
                 <h2 className="font-display text-2xl font-bold mb-4">
                   Customize Your Item
                 </h2>
                 <div className="space-y-4">
-                  {item.modifierGroups?.map((group) => (
+                  {itemData?.modifierGroups?.map((group) => (
                     <div key={group.id} className="rounded-xl border p-4">
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         <h3 className="font-semibold">{group.name}</h3>
@@ -131,8 +139,7 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
                 </div>
               </section>
             ) : null} */}
-            <ItemAddToCart item={item} />
-
+            <ItemAddToCart item={itemData as MenuItemDetails} />
           </div>
         </div>
 

@@ -23,7 +23,7 @@ type NavbarProps = {
 
 export function Navbar({ locations }: NavbarProps) {
   const itemCount = useCartStore((s) => s.itemCount());
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, bootstrap } = useAuthStore();
   const navigate = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -31,6 +31,8 @@ export function Navbar({ locations }: NavbarProps) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    bootstrap().catch(() => {});
+
   }, []);
 
   const displayItemCount = mounted ? itemCount : 0;

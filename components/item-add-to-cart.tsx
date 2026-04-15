@@ -13,6 +13,7 @@ import { toast } from "sonner";
 function detailsToItem(d: MenuItemDetails): Item {
   return {
     id: d.id,
+    slug: d.slug,
     categoryId: d.categoryId,
     sku: d.sku,
     name: d.name,
@@ -41,7 +42,7 @@ export function ItemAddToCart({ item }: { item: MenuItemDetails }) {
   const addItem = useCartStore((s) => s.addItem);
   const [selected, setSelected] = useState<SelectedMap>(() => {
     const init: SelectedMap = {};
-    for (const g of item.modifierGroups || []) {
+    for (const g of item?.modifierGroups || []) {
       init[g.id] = new Set();
     }
     return init;
@@ -72,7 +73,7 @@ export function ItemAddToCart({ item }: { item: MenuItemDetails }) {
   };
 
   const validate = (): boolean => {
-    for (const g of item.modifierGroups || []) {
+    for (const g of item?.modifierGroups || []) {
       const count = selected[g.id]?.size ?? 0;
       if (g.isRequired && count < Math.max(1, g.minSelections)) {
         toast.error(`Please choose options for “${g.name}”`);
@@ -94,7 +95,7 @@ export function ItemAddToCart({ item }: { item: MenuItemDetails }) {
 
   const buildModifiers = (): CartLineModifier[] => {
     const out: CartLineModifier[] = [];
-    for (const g of item.modifierGroups || []) {
+    for (const g of item?.modifierGroups || []) {
       for (const modId of selected[g.id] || []) {
         const mod = g.modifiers.find((m) => m.id === modId);
         if (!mod) continue;
@@ -119,10 +120,10 @@ export function ItemAddToCart({ item }: { item: MenuItemDetails }) {
       modifiers,
       specialInstructions: notes,
     });
-    toast.success(`${item.name} added to cart`);
+    toast.success(`${item?.name} added to cart`);
   };
 
-  if (!item.modifierGroups?.length) {
+  if (!item?.modifierGroups?.length) {
     return (
       <div className="mt-8 space-y-4">
         <Textarea
@@ -140,7 +141,7 @@ export function ItemAddToCart({ item }: { item: MenuItemDetails }) {
 
   return (
     <div className="mt-8 space-y-6">
-      {item.modifierGroups.map((g) => (
+      {item?.modifierGroups.map((g) => (
         <div key={g.id} className="rounded-xl border p-4 space-y-3">
           <div className="flex flex-wrap gap-2 items-center">
             <h3 className="font-semibold">{g.name}</h3>

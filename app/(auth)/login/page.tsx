@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -24,11 +25,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Shield, KeyRound } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -50,8 +51,8 @@ export default function LoginPage() {
       await login(data.email, data.password);
       toast.success("Welcome back!");
       router.push("/");
-    } catch {
-      toast.error("Login failed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,8 @@ export default function LoginPage() {
           <CardTitle className="font-display text-2xl">Welcome back</CardTitle>
           <CardDescription>Sign in to your FoodHub account</CardDescription>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="space-y-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -82,6 +84,7 @@ export default function LoginPage() {
                       <Input
                         type="email"
                         placeholder="you@example.com"
+                        autoComplete="email"
                         {...field}
                       />
                     </FormControl>
@@ -89,17 +92,27 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Password</FormLabel>
+                      <Link
+                        href="/reset-password"
+                        className="text-xs text-primary font-medium hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
+                          autoComplete="current-password"
                           {...field}
                         />
                         <Button
@@ -121,17 +134,43 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </Form>
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            Don't have an account?{" "}
-            <Link
-              href="/signup"
-              className="text-primary font-medium hover:underline"
-            >
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or use another method
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Button variant="outline" className="w-full gap-2" asChild>
+              <Link href="/login-otp">
+                <Shield className="h-4 w-4" />
+                Sign in with OTP
+              </Link>
+            </Button>
+
+            <Button variant="ghost" className="w-full gap-2" asChild>
+              <Link href="/reset-password">
+                <KeyRound className="h-4 w-4" />
+                Reset password
+              </Link>
+            </Button>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-primary font-medium hover:underline">
               Sign up
             </Link>
           </p>

@@ -1,23 +1,26 @@
-import { apiClient } from "@/lib/apiClient";
-import { ApiError } from "@/lib/apiClient";
+import { createApiClient, ApiError } from "@/lib/apiClient";
 import type { CreateOnlineOrderPayload, OnlineOrderResponse } from "@/types";
 
+// Same-origin client so cookies (fh_at/fh_rt) are included,
+// and Next proxy can attach Authorization: Bearer <fh_at>
+const proxyClient = createApiClient();
+
 const PATH_CANDIDATES = [
-  "/api/v1/online-orders",
-  "/api/online-orders",
+  "/api/proxy/online-orders",
+  "/api/proxy/online-orders",
 ] as const;
 
 export async function createOnlineOrder(
   body: CreateOnlineOrderPayload,
-  options?: { token?: string | null },
 ): Promise<OnlineOrderResponse> {
   let last404: ApiError | null = null;
 
   for (const path of PATH_CANDIDATES) {
     try {
-      const res = await apiClient.post<OnlineOrderResponse>(path, body, {
-        token: options?.token ?? undefined,
-      });
+      const res = await proxyClient.post<OnlineOrderResponse>(
+        path,
+        body as unknown as Record<string, unknown>,
+      );
       return res.data;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {

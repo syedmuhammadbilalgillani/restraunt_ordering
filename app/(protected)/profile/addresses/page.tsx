@@ -1,110 +1,166 @@
 "use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/auth-store";
-import { Address } from "@/types";
-import { ArrowLeft, Briefcase, Home, MapPin, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Briefcase, Home, MapPin, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
-const initialAddresses: Address[] = [
-  {
-    id: "addr-1",
-    label: "Home",
-    street: "123 Main Street, Apt 4B",
-    city: "New York",
-    state: "NY",
-    zip: "10001",
-    isDefault: true,
-  },
-  {
-    id: "addr-2",
-    label: "Work",
-    street: "456 Park Avenue, Floor 12",
-    city: "New York",
-    state: "NY",
-    zip: "10022",
-    isDefault: false,
-  },
-];
+import {
+  createCustomerAddress,
+  listCustomerAddresses,
+  updateCustomerAddress,
+  type CustomerAddress,
+} from "@/lib/customer-auth";
 
 export default function AddressesPage() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, bootstrap } = useAuthStore();
   const navigate = useRouter();
-  const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
+
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newAddr, setNewAddr] = useState({
-    label: "",
-    street: "",
+    label: "Home",
+    fullName: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
     city: "",
     state: "",
-    zip: "",
+    postalCode: "",
+    countryCode: "PK",
+    isDefault: true,
   });
 
   useEffect(() => {
     if (!isAuthenticated) navigate.push("/login");
   }, [isAuthenticated, navigate]);
 
-  const handleAdd = () => {
-    if (!newAddr.label || !newAddr.street || !newAddr.city) {
-      toast.error("Please fill in all required fields");
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await listCustomerAddresses();
+      setAddresses(res?.addresses ?? []);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load addresses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    load().catch(() => {});
+  }, [isAuthenticated]);
+
+  const handleAdd = async () => {
+    if (!newAddr.addressLine1.trim() || !newAddr.city.trim()) {
+      toast.error("Address line 1 and city are required");
       return;
     }
-    const addr: Address = {
-      id: "addr-" + Date.now(),
-      ...newAddr,
-      isDefault: addresses.length === 0,
-    };
-    setAddresses((prev) => [...prev, addr]);
-    setNewAddr({ label: "", street: "", city: "", state: "", zip: "" });
-    setDialogOpen(false);
-    toast.success("Address added!");
+    setLoading(true);
+    try {
+      await createCustomerAddress({
+        label: newAddr.label.trim() || undefined,
+        fullName: newAddr.fullName.trim() || undefined,
+        phone: newAddr.phone.trim() || undefined,
+        addressLine1: newAddr.addressLine1.trim(),
+        addressLine2: newAddr.addressLine2.trim() || undefined,
+        city: newAddr.city.trim(),
+        state: newAddr.state.trim() || undefined,
+        postalCode: newAddr.postalCode.trim() || undefined,
+        countryCode: newAddr.countryCode.trim() || undefined,
+        isDefault: newAddr.isDefault,
+      });
+
+      setDialogOpen(false);
+      setNewAddr({
+        label: "Home",
+        fullName: "",
+        phone: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        countryCode: "PK",
+        isDefault: true,
+      });
+
+      await load();
+      await bootstrap(); // refresh default address id into store (checkout)
+      toast.success("Address added!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not add address");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
-    toast("Address removed");
+  const handleSetDefault = async (id: string) => {
+    setLoading(true);
+    try {
+      await updateCustomerAddress(id, { isDefault: true });
+      await load();
+      await bootstrap();
+      toast.success("Default address updated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update default");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSetDefault = (id: string) => {
-    setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
-    toast.success("Default address updated");
+  const handleDelete = async (id: string) => {
+    toast("Delete endpoint not provided in doc (add backend DELETE /addresses/:id).");
+    // If you add it later, call it here then reload.
   };
 
-  const getLabelIcon = (label: string) => {
-    if (label.toLowerCase() === "home") return Home;
-    if (label.toLowerCase() === "work") return Briefcase;
+  const getLabelIcon = (label: string | null | undefined) => {
+    const l = (label || "").toLowerCase();
+    if (l === "home") return Home;
+    if (l === "work") return Briefcase;
     return MapPin;
   };
+
+  const sorted = useMemo(() => {
+    return [...addresses]?.sort((a, b) => Number(b?.isDefault) - Number(a?.isDefault));
+  }, [addresses]);
 
   if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen">
       <div className="container py-8 max-w-2xl">
-        <Button
-          variant="ghost"
-          className="gap-2 mb-6"
-          onClick={() => navigate.back()}
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" className="gap-2" onClick={() => navigate.back()}>
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Button>
+
+          <Button variant="outline" className="gap-2" disabled={loading} onClick={load}>
+            <RefreshCcw className="h-4 w-4" /> Refresh
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-display text-3xl font-bold">My Addresses</h1>
+
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-xl gap-2">
+              <Button className="rounded-xl gap-2" disabled={loading}>
                 <Plus className="h-4 w-4" /> Add Address
               </Button>
             </DialogTrigger>
@@ -112,61 +168,92 @@ export default function AddressesPage() {
               <DialogHeader>
                 <DialogTitle>Add New Address</DialogTitle>
               </DialogHeader>
+
               <div className="space-y-4 mt-4">
                 <div>
                   <Label>Label</Label>
                   <Input
                     placeholder="e.g. Home, Work"
                     value={newAddr.label}
-                    onChange={(e) =>
-                      setNewAddr({ ...newAddr, label: e.target.value })
-                    }
+                    onChange={(e) => setNewAddr({ ...newAddr, label: e.target.value })}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Full name (optional)</Label>
+                    <Input
+                      value={newAddr.fullName}
+                      onChange={(e) => setNewAddr({ ...newAddr, fullName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone (optional)</Label>
+                    <Input
+                      value={newAddr.phone}
+                      onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <Label>Street Address</Label>
+                  <Label>Address line 1</Label>
                   <Input
-                    placeholder="123 Main St, Apt 4"
-                    value={newAddr.street}
-                    onChange={(e) =>
-                      setNewAddr({ ...newAddr, street: e.target.value })
-                    }
+                    placeholder="Street 1"
+                    value={newAddr.addressLine1}
+                    onChange={(e) => setNewAddr({ ...newAddr, addressLine1: e.target.value })}
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+
+                <div>
+                  <Label>Address line 2 (optional)</Label>
+                  <Input
+                    placeholder="Apartment 2"
+                    value={newAddr.addressLine2}
+                    onChange={(e) => setNewAddr({ ...newAddr, addressLine2: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>City</Label>
                     <Input
                       placeholder="City"
                       value={newAddr.city}
-                      onChange={(e) =>
-                        setNewAddr({ ...newAddr, city: e.target.value })
-                      }
+                      onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label>State</Label>
+                    <Label>State (optional)</Label>
                     <Input
                       placeholder="State"
                       value={newAddr.state}
-                      onChange={(e) =>
-                        setNewAddr({ ...newAddr, state: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>ZIP</Label>
-                    <Input
-                      placeholder="ZIP"
-                      value={newAddr.zip}
-                      onChange={(e) =>
-                        setNewAddr({ ...newAddr, zip: e.target.value })
-                      }
+                      onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })}
                     />
                   </div>
                 </div>
-                <Button className="w-full rounded-xl" onClick={handleAdd}>
-                  Save Address
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Postal code (optional)</Label>
+                    <Input
+                      placeholder="54000"
+                      value={newAddr.postalCode}
+                      onChange={(e) => setNewAddr({ ...newAddr, postalCode: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Country code (optional)</Label>
+                    <Input
+                      placeholder="PK"
+                      value={newAddr.countryCode}
+                      onChange={(e) => setNewAddr({ ...newAddr, countryCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <Button className="w-full rounded-xl" onClick={handleAdd} disabled={loading}>
+                  {loading ? "Saving..." : "Save Address"}
                 </Button>
               </div>
             </DialogContent>
@@ -174,7 +261,7 @@ export default function AddressesPage() {
         </div>
 
         <div className="space-y-3">
-          {addresses.map((addr) => {
+          {sorted.map((addr) => {
             const Icon = getLabelIcon(addr.label);
             return (
               <Card
@@ -185,27 +272,34 @@ export default function AddressesPage() {
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">{addr.label}</p>
+                      <p className="font-medium">{addr.label || "Address"}</p>
                       {addr.isDefault && (
                         <Badge variant="secondary" className="text-xs">
                           Default
                         </Badge>
                       )}
                     </div>
+
                     <p className="text-sm text-muted-foreground mt-1">
-                      {addr.street}
+                      {addr.addressLine1}
+                      {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {addr.city}, {addr.state} {addr.zip}
+                      {addr.city}
+                      {addr.state ? `, ${addr.state}` : ""}{" "}
+                      {addr.postalCode || ""}
                     </p>
                   </div>
+
                   <div className="flex items-center gap-1 shrink-0">
                     {!addr.isDefault && (
                       <Button
                         variant="ghost"
                         size="sm"
+                        disabled={loading}
                         onClick={() => handleSetDefault(addr.id)}
                       >
                         Set Default
@@ -216,6 +310,8 @@ export default function AddressesPage() {
                       size="icon"
                       className="h-8 w-8 text-destructive"
                       onClick={() => handleDelete(addr.id)}
+                      disabled
+                      title="Delete not implemented in API doc"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -224,7 +320,8 @@ export default function AddressesPage() {
               </Card>
             );
           })}
-          {addresses.length === 0 && (
+
+          {sorted.length === 0 && (
             <div className="text-center py-16 text-muted-foreground">
               <MapPin className="h-12 w-12 mx-auto mb-4" />
               <p className="text-lg font-medium">No addresses yet</p>

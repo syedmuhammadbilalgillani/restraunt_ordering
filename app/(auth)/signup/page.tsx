@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,21 +22,37 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 const signupSchema = z
   .object({
-    name: z.string().trim().min(2, "Name is required").max(100),
-    email: z.string().trim().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string(),
+    fullName: z.string().trim().max(100).optional().or(z.literal("")),
+    email: z.string().trim().email("Invalid email address").optional().or(z.literal("")),
+    phone: z.string().trim().min(7, "Phone is required").max(20),
+    password: z.string().trim().optional().or(z.literal("")),
+    confirmPassword: z.string().trim().optional().or(z.literal("")),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
+  .superRefine((data, ctx) => {
+    const pw = data.password?.trim() || "";
+    const cpw = data.confirmPassword?.trim() || "";
+
+    if ((pw || cpw) && pw.length < 6) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["password"],
+        message: "Password must be at least 6 characters",
+      });
+    }
+    if ((pw || cpw) && pw !== cpw) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "Passwords don't match",
+      });
+    }
   });
 
 type SignupForm = z.infer<typeof signupSchema>;
@@ -48,17 +65,25 @@ export default function SignupPage() {
 
   const form = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: { fullName: "", email: "", phone: "", password: "", confirmPassword: "" },
   });
+
+  const passwordValue = useMemo(() => form.watch("password")?.trim() || "", [form.watch("password")]);
 
   const onSubmit = async (data: SignupForm) => {
     setLoading(true);
     try {
-      await signup(data.name, data.email, data.password);
-      toast.success("Account created! Welcome to FoodHub 🎉");
+      await signup(
+        data.fullName?.trim() || "",
+        data.email?.trim() || "",
+        data.phone.trim(),
+        data.password?.trim() ? data.password.trim() : undefined,
+      );
+
+      toast.success("Account created!");
       router.push("/");
-    } catch {
-      toast.error("Signup failed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -73,20 +98,18 @@ export default function SignupPage() {
               F
             </div>
           </div>
-          <CardTitle className="font-display text-2xl">
-            Create an account
-          </CardTitle>
-          <CardDescription>Join FoodHub and start ordering</CardDescription>
+          <CardTitle className="font-display text-2xl">Create an account</CardTitle>
+          <CardDescription>Phone is required. Email/password are optional.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="name"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Full Name (optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" {...field} />
                     </FormControl>
@@ -94,34 +117,47 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="email"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                      />
+                      <Input placeholder="+923001234567" inputMode="tel" autoComplete="tel" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email (optional)</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Password (optional)</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           {...field}
                         />
                         <Button
@@ -131,11 +167,7 @@ export default function SignupPage() {
                           className="absolute right-0 top-0 h-full"
                           onClick={() => setShowPassword(!showPassword)}
                         >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                       </div>
                     </FormControl>
@@ -143,34 +175,32 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              {passwordValue ? (
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
           </Form>
+
           <p className="text-center text-sm text-muted-foreground mt-4">
             Already have an account?{" "}
-            <Link
-              href="/login"
-              className="text-primary font-medium hover:underline"
-            >
+            <Link href="/login" className="text-primary font-medium hover:underline">
               Sign in
             </Link>
           </p>

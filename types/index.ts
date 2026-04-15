@@ -79,6 +79,7 @@ export interface MenuCategory {
 }
 export interface Item {
   id: string;
+  slug: string;
   categoryId: string;
   sku: string;
   name: string;
@@ -180,6 +181,7 @@ export interface CategoryReference {
 
 export interface MenuItemDetails {
   id: string;
+  slug: string;
   categoryId: string;
   sku: string;
   name: string;

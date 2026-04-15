@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -33,16 +34,12 @@ const checkoutSchema = z.object({
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
-  const { items, total, clearCart, itemCount } = useCartStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const { items, total, clearCart } = useCartStore();
+  const { isAuthenticated, user, defaultAddressId } = useAuthStore();
   const navigate = useRouter();
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(
-    "delivery",
-  );
   const { selectedLocation } = useLocationStore();
-  console.log(items, "items");
-  console.log(total(), "total");
-  console.log(itemCount(), "itemCount");
+
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [loading, setLoading] = useState(false);
 
@@ -51,7 +48,7 @@ export default function CheckoutPage() {
     defaultValues: {
       name: user?.name || "",
       phone: user?.phone || "",
-      address: user?.address || "",
+      address: "",
     },
   });
 
@@ -71,37 +68,32 @@ export default function CheckoutPage() {
       toast.error("Please select a location first.");
       return;
     }
-    if (deliveryType === "delivery" && !user?.address) {
+
+    if (deliveryType === "delivery" && !defaultAddressId) {
       toast.error(
-        "Delivery requires a saved address. Choose pickup or add an address in your profile.",
+        "Delivery requires a saved address. Add an address in your profile and set it as default.",
       );
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
+      const payload: CreateOnlineOrderPayload = {
         locationId: selectedLocation.id,
         orderType: deliveryType === "delivery" ? "delivery" : "takeaway",
-        orderSource: "online" as const,
+        orderSource: "online",
         lines: cartToOrderLines(items),
-        ...(deliveryType === "delivery" && user?.address
-          ? { deliveryAddressId: user.address }
+        ...(deliveryType === "delivery" && defaultAddressId
+          ? { deliveryAddressId: defaultAddressId }
           : {}),
-        // ...(coupon.trim() ? { discountCode: coupon.trim() } : {}),
-        customerNotes: [data.name, data.phone, data.address]
-          .filter(Boolean)
-          .join(" · "),
+        customerNotes: [data.name, data.phone, data.address].filter(Boolean).join(" · "),
       };
 
-      const order = await createOnlineOrder(
-        payload as CreateOnlineOrderPayload,
-        { token: "accessToken" },
-      );
+      // Cookie auth is handled by apiClient credentials: "include"
+      const order = await createOnlineOrder(payload);
+
       clearCart();
-      toast.success(
-        `Order placed${order.orderNumber ? ` #${order.orderNumber}` : ""}!`,
-      );
+      toast.success(`Order placed${order.orderNumber ? ` #${order.orderNumber}` : ""}!`);
       navigate.push("/orders");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not place order";
@@ -110,6 +102,7 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
+
   if (!isAuthenticated || items.length === 0) return null;
 
   return (
@@ -122,31 +115,32 @@ export default function CheckoutPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
+
         <h1 className="font-display text-3xl font-bold mb-8">Checkout</h1>
 
         <div className="grid md:grid-cols-5 gap-8">
           <div className="md:col-span-3 space-y-6">
             <div className="rounded-xl border bg-card p-6">
-              <h2 className="font-display font-semibold mb-4">
-                Delivery Method
-              </h2>
+              <h2 className="font-display font-semibold mb-4">Delivery Method</h2>
               <RadioGroup
                 value={deliveryType}
-                onValueChange={(v) =>
-                  setDeliveryType(v as "delivery" | "pickup")
-                }
+                onValueChange={(v) => setDeliveryType(v as "delivery" | "pickup")}
                 className="grid grid-cols-2 gap-3"
               >
                 <Label
                   htmlFor="delivery"
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${deliveryType === "delivery" ? "border-primary bg-primary/5" : ""}`}
+                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    deliveryType === "delivery" ? "border-primary bg-primary/5" : ""
+                  }`}
                 >
                   <RadioGroupItem value="delivery" id="delivery" />
                   <Truck className="h-5 w-5" /> Delivery
                 </Label>
                 <Label
                   htmlFor="pickup"
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${deliveryType === "pickup" ? "border-primary bg-primary/5" : ""}`}
+                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    deliveryType === "pickup" ? "border-primary bg-primary/5" : ""
+                  }`}
                 >
                   <RadioGroupItem value="pickup" id="pickup" />
                   <Store className="h-5 w-5" /> Pickup
@@ -175,6 +169,7 @@ export default function CheckoutPage() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="phone"
@@ -188,32 +183,28 @@ export default function CheckoutPage() {
                       </FormItem>
                     )}
                   />
-                  {deliveryType === "delivery" && (
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Delivery Address</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="123 Main St, Apt 4"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {deliveryType === "delivery" ? "Delivery Notes / Address" : "Notes"}
+                        </FormLabel>
+                        <FormControl>
+                          <Input placeholder="Address or delivery instructions" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </form>
               </Form>
             </div>
 
             <div className="rounded-xl border bg-card p-6">
-              <h2 className="font-display font-semibold mb-4">
-                Payment Method
-              </h2>
+              <h2 className="font-display font-semibold mb-4">Payment Method</h2>
               <RadioGroup
                 value={paymentMethod}
                 onValueChange={(v) => setPaymentMethod(v as "cash" | "card")}
@@ -221,14 +212,19 @@ export default function CheckoutPage() {
               >
                 <Label
                   htmlFor="cash"
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${paymentMethod === "cash" ? "border-primary bg-primary/5" : ""}`}
+                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    paymentMethod === "cash" ? "border-primary bg-primary/5" : ""
+                  }`}
                 >
                   <RadioGroupItem value="cash" id="cash" />
                   <Banknote className="h-5 w-5" /> Cash
                 </Label>
+
                 <Label
                   htmlFor="card"
-                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${paymentMethod === "card" ? "border-primary bg-primary/5" : ""}`}
+                  className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                    paymentMethod === "card" ? "border-primary bg-primary/5" : ""
+                  }`}
                 >
                   <RadioGroupItem value="card" id="card" />
                   <CreditCard className="h-5 w-5" /> Card
@@ -240,18 +236,18 @@ export default function CheckoutPage() {
           <div className="md:col-span-2">
             <div className="rounded-xl border bg-card p-6 sticky top-24 space-y-4">
               <h2 className="font-display text-xl font-bold">Order Summary</h2>
+
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {items.map((item, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span>
                       {item.quantity}x {item.menuItem.name}
                     </span>
-                    <span>
-                      ${(item.menuItem.basePrice * item.quantity).toFixed(2)}
-                    </span>
+                    <span>${(item.menuItem.basePrice * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
+
               <div className="border-t pt-3 space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -264,10 +260,12 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               </div>
+
               <div className="border-t pt-3 flex justify-between font-display font-bold text-lg">
                 <span>Total</span>
                 <span className="text-primary">${total().toFixed(2)}</span>
               </div>
+
               <Button
                 size="lg"
                 className="w-full rounded-xl"
@@ -275,9 +273,7 @@ export default function CheckoutPage() {
                 type="submit"
                 disabled={loading}
               >
-                {loading
-                  ? "Placing Order..."
-                  : `Place Order · $${total().toFixed(2)}`}
+                {loading ? "Placing Order..." : `Place Order · $${total().toFixed(2)}`}
               </Button>
             </div>
           </div>

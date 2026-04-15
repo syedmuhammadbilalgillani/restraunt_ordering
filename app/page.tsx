@@ -39,8 +39,9 @@ export default async function HomePage() {
       featured: true,
     },
   });
+
   console.log(menuCategories, "menuCategories");
-  console.log(menuItems, "menuItems");
+  console.log(menuItems?.data?.items, "menuItems");
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -120,7 +121,7 @@ export default async function HomePage() {
           >
             {menuCategories?.categories?.map((cat) => (
               <Link
-                href={`/menu?category=${cat.id}`}
+                href={`/menu/category/${cat.slug}`}
                 key={cat.id}
                 className="group"
               >
@@ -175,8 +176,8 @@ export default async function HomePage() {
               </Card>
             ))}
           >
-            {menuItems.data.items.length > 0 ? (
-              menuItems.data.items.map((item) => (
+            {menuItems?.data?.items?.length > 0 ? (
+              menuItems?.data?.items?.map((item) => (
                 <MenuCard key={item.id} item={item} />
               ))
             ) : (

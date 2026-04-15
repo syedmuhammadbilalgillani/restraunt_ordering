@@ -134,14 +134,14 @@ export const getAllMenuItemsByCategory = unstable_cache(
 
 export const getMenuItemById = unstable_cache(
   async ({
-    id,
+    slug,
     locationId,
   }: {
-    id: string;
+    slug: string;
     locationId?: string;
   }): Promise<MenuItemByIdResponse> => {
     const response = await apiClient.get<MenuItemByIdResponse>(
-      `/public/menu/items/${id}`,
+      `/public/menu/items/${slug}`,
       {
         ...(locationId ? { headers: { "x-location-id": locationId } } : {}),
       },
