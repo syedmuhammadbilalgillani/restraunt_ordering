@@ -34,20 +34,41 @@ function newLineId(): string {
   return `line-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+export type AppliedDiscount =
+  | null
+  | {
+      valid: true;
+      code: string; // what user typed
+      discountId: string;
+      discountType: string;
+      value: string;
+      amountOff: string;
+      message: string;
+    };
+
 interface CartState {
   items: CartItem[];
   addItem: (input: AddToCartInput) => void;
   removeItem: (lineId: string) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
+
   total: () => number;
   itemCount: () => number;
+
+  couponCode: string;
+  appliedDiscount: AppliedDiscount;
+
+  setCouponCode: (code: string) => void;
+  applyDiscount: (discount: NonNullable<AppliedDiscount>) => void;
+  clearDiscount: () => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+
       addItem: (input) => {
         const {
           menuItem,
@@ -55,7 +76,12 @@ export const useCartStore = create<CartState>()(
           modifiers = [],
           specialInstructions = "",
         } = input;
-        const key = lineIdentityKey(menuItem.id, modifiers, specialInstructions);
+
+        const key = lineIdentityKey(
+          menuItem.id,
+          modifiers,
+          specialInstructions,
+        );
 
         set((state) => {
           const existing = state.items.find(
@@ -66,6 +92,7 @@ export const useCartStore = create<CartState>()(
                 i.specialInstructions ?? "",
               ) === key,
           );
+
           if (existing) {
             return {
               items: state.items.map((i) =>
@@ -75,6 +102,7 @@ export const useCartStore = create<CartState>()(
               ),
             };
           }
+
           const line: CartItem = {
             lineId: newLineId(),
             menuItem,
@@ -82,27 +110,49 @@ export const useCartStore = create<CartState>()(
             modifiers,
             specialInstructions: specialInstructions.trim() || undefined,
           };
+
           return { items: [...state.items, line] };
         });
+
+        // safest: cart changed => coupon may no longer be valid
+        set({ appliedDiscount: null });
       },
-      removeItem: (lineId) =>
+
+      removeItem: (lineId) => {
         set((state) => ({
           items: state.items.filter((i) => i.lineId !== lineId),
-        })),
-      updateQuantity: (lineId, quantity) =>
+          appliedDiscount: null,
+        }));
+      },
+
+      updateQuantity: (lineId, quantity) => {
         set((state) => {
           if (quantity <= 0) {
-            return { items: state.items.filter((i) => i.lineId !== lineId) };
+            return {
+              items: state.items.filter((i) => i.lineId !== lineId),
+              appliedDiscount: null,
+            };
           }
           return {
             items: state.items.map((i) =>
               i.lineId === lineId ? { ...i, quantity } : i,
             ),
+            appliedDiscount: null,
           };
-        }),
-      clearCart: () => set({ items: [] }),
+        });
+      },
+
+      clearCart: () => set({ items: [], couponCode: "", appliedDiscount: null }),
+
       total: () => get().items.reduce((sum, i) => sum + lineTotal(i), 0),
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+
+      couponCode: "",
+      appliedDiscount: null,
+
+      setCouponCode: (code) => set({ couponCode: code }),
+      applyDiscount: (discount) => set({ appliedDiscount: discount }),
+      clearDiscount: () => set({ appliedDiscount: null }),
     }),
     { name: "foodhub-cart-v2" },
   ),

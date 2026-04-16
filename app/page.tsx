@@ -40,8 +40,6 @@ export default async function HomePage() {
     },
   });
 
-  console.log(menuCategories, "menuCategories");
-  console.log(menuItems?.data?.items, "menuItems");
   return (
     <div className="min-h-screen">
       {/* Hero */}

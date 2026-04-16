@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     secure: isProd,
     sameSite: "lax",
     path: "/",
-    // maxAge: 60 * 15, // if you want
+    maxAge: 60 * 15,
   });
 
   cookieStore.set(REFRESH_COOKIE, body.refreshToken, {
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     secure: isProd,
     sameSite: "lax",
     path: "/",
-    // maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 30,
   });
 
   return NextResponse.json({ ok: true });
@@ -40,7 +40,9 @@ export async function GET() {
   const rt = cookieStore.get(REFRESH_COOKIE)?.value;
 
   return NextResponse.json({
-    authenticated: Boolean(at || rt),
+    hasAccessToken: Boolean(at),
+    hasRefreshToken: Boolean(rt),
+    authenticated: Boolean(at), // use access token only for "authed UI" gating
   });
 }
 

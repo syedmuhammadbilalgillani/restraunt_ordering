@@ -258,7 +258,6 @@ export interface CreateOnlineOrderLine {
 }
 
 export interface CreateOnlineOrderPayload {
-  locationId: string;
   orderType: OrderType;
   orderSource: OrderSource;
   lines: CreateOnlineOrderLine[];
@@ -272,6 +271,7 @@ export interface CreateOnlineOrderPayload {
   qrCodeId?: string;
   groupSessionId?: string;
   kioskTerminalId?: string;
+  clientTotal?: string;
 }
 
 /** Adjust fields to match your actual `.returning()` row */

@@ -73,12 +73,12 @@ export function MenuCard({ item }: MenuCardProps) {
             <span className="font-display font-bold text-primary">
               ${itemPrice}
             </span>
-            {"sku" in item ? (
+            {/* {"sku" in item ? (
               <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                 <Star className="h-3 w-3 fill-warning text-warning" />{" "}
                 {item.sku}
               </span>
-            ) : null}
+            ) : null} */}
           </div>
           {/* {canAddToCart ? ( */}
           <Button

@@ -1,10 +1,13 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { lineTotal } from "@/lib/cart-math";
+import { validateDiscount } from "@/lib/discounts";
 import { useAuthStore } from "@/store/auth-store";
 import { useCartStore } from "@/store/cart-store";
+import { useLocationStore } from "@/store/location-store";
 import { CartItem } from "@/types";
 import {
   ArrowRight,
@@ -17,19 +20,39 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, total, clearCart, itemCount } =
-    useCartStore();
-  const { isAuthenticated } = useAuthStore();
-  const router = useRouter();
-  const [coupon, setCoupon] = useState("");
+  const {
+    items,
+    updateQuantity,
+    removeItem,
+    total,
+    clearCart,
+    itemCount,
+    couponCode,
+    setCouponCode,
+    appliedDiscount,
+    applyDiscount,
+    clearDiscount,
+  } = useCartStore();
 
-  console.log(items, "items");
-  console.log(total(), "total");
-  console.log(itemCount(), "itemCount");
+  const { isAuthenticated, user } = useAuthStore();
+  const { selectedLocation } = useLocationStore();
+  const router = useRouter();
+
+  const [applying, setApplying] = useState(false);
+
+  const subtotal = total();
+
+  const discountAmount = useMemo(() => {
+    if (!appliedDiscount?.valid) return 0;
+    const n = Number(appliedDiscount.amountOff);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }, [appliedDiscount]);
+
+  const grandTotal = Math.max(0, subtotal - discountAmount);
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
@@ -38,6 +61,51 @@ export default function CartPage() {
       return;
     }
     router.push("/checkout");
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!selectedLocation?.id) return toast.error("Select a location first");
+    const code = couponCode.trim();
+    if (!code) return toast.error("Enter a coupon code");
+
+    setApplying(true);
+    try {
+      const res = await validateDiscount({
+        locationId: selectedLocation.id,
+        code,
+        orderType: "delivery", // you can infer this from user selection if you have it
+        orderSource: "online",
+        subtotal: subtotal.toFixed(2),
+        customerId: user?.id,
+      });
+
+      if (!res.valid) {
+        clearDiscount();
+        toast.error(res.message);
+        return;
+      }
+
+      applyDiscount({
+        valid: true,
+        code,
+        discountId: res.discountId,
+        discountType: res.discountType,
+        value: res.value,
+        amountOff: res.amountOff,
+        message: res.message,
+      });
+
+      toast.success(res.message || `Coupon applied: -${res.amountOff}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to apply coupon");
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const handleClearCoupon = () => {
+    clearDiscount();
+    toast("Coupon cleared");
   };
 
   if (items.length === 0) {
@@ -58,7 +126,7 @@ export default function CartPage() {
       </div>
     );
   }
-  console.log(items, "items");
+
   return (
     <div className="min-h-screen">
       <div className="container py-8">
@@ -83,6 +151,7 @@ export default function CartPage() {
                 ) : (
                   <Skeleton className="h-24 w-24 rounded-lg object-cover" />
                 )}
+
                 <div className="flex-1 min-w-0">
                   <Link
                     href={`/item/${item.menuItem.id}`}
@@ -90,9 +159,11 @@ export default function CartPage() {
                   >
                     {item.menuItem.name}
                   </Link>
+
                   <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
                     {item.menuItem.description}
                   </p>
+
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-2">
                       <Button
@@ -119,10 +190,12 @@ export default function CartPage() {
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
+
                     <div className="flex items-center gap-3">
                       <span className="font-display font-bold text-primary">
                         ${lineTotal(item).toFixed(2)}
                       </span>
+
                       {item.modifiers.length > 0 && (
                         <ul className="text-xs text-muted-foreground mt-1">
                           {item.modifiers.map((m) => (
@@ -133,6 +206,7 @@ export default function CartPage() {
                           ))}
                         </ul>
                       )}
+
                       <Button
                         variant="ghost"
                         size="icon"
@@ -149,6 +223,7 @@ export default function CartPage() {
                 </div>
               </div>
             ))}
+
             <Button
               variant="ghost"
               className="text-destructive"
@@ -165,13 +240,26 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <div className="rounded-xl border bg-card p-6 sticky top-24 space-y-4">
               <h2 className="font-display text-xl font-bold">Order Summary</h2>
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
                     Subtotal ({itemCount()} items)
                   </span>
-                  <span>${total().toFixed(2)}</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
+
+                {appliedDiscount?.valid ? (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Discount ({appliedDiscount.code})
+                    </span>
+                    <span className="text-success">
+                      -${discountAmount.toFixed(2)}
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery fee</span>
                   <span className="text-success">Free</span>
@@ -179,28 +267,50 @@ export default function CartPage() {
               </div>
 
               {/* Coupon */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Coupon code"
-                    value={coupon}
-                    onChange={(e) => setCoupon(e.target.value)}
-                    className="pl-9 text-sm"
-                  />
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Coupon code"
+                      value={couponCode}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value);
+                        // typing changes the code => previous applied discount no longer reliable
+                        if (appliedDiscount?.valid) clearDiscount();
+                      }}
+                      className="pl-9 text-sm"
+                    />
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleApplyCoupon}
+                    disabled={applying}
+                  >
+                    {applying ? "Applying..." : "Apply"}
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toast("Coupon applied! (UI only)")}
-                >
-                  Apply
-                </Button>
+
+                {appliedDiscount?.valid ? (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{appliedDiscount.message}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={handleClearCoupon}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="border-t pt-4 flex justify-between font-display font-bold text-lg">
                 <span>Total</span>
-                <span className="text-primary">${total().toFixed(2)}</span>
+                <span className="text-primary">${grandTotal.toFixed(2)}</span>
               </div>
 
               <Button

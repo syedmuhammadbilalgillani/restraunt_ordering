@@ -1,3 +1,4 @@
+import { TENANT_ID } from "@/constants";
 import { createApiClient, ApiError } from "@/lib/apiClient";
 import type { CreateOnlineOrderPayload, OnlineOrderResponse } from "@/types";
 
@@ -12,6 +13,7 @@ const PATH_CANDIDATES = [
 
 export async function createOnlineOrder(
   body: CreateOnlineOrderPayload,
+  locationId?: string,
 ): Promise<OnlineOrderResponse> {
   let last404: ApiError | null = null;
 
@@ -20,6 +22,11 @@ export async function createOnlineOrder(
       const res = await proxyClient.post<OnlineOrderResponse>(
         path,
         body as unknown as Record<string, unknown>,
+        {
+          headers: {
+            ...(locationId ? { "x-location-id": locationId } : {}),
+          },
+        },
       );
       return res.data;
     } catch (e) {
@@ -55,4 +62,77 @@ export function cartToOrderLines(
         }
       : {}),
   }));
+}
+
+export type OrdersListResponse = {
+  data: Array<{
+    id: string;
+    orderNumber: string;
+    status: string;
+    paymentStatus: string;
+    orderType: string;
+    orderSource: string;
+    locationId: string;
+    subtotal: string;
+    discountAmount: string;
+    taxAmount: string;
+    deliveryFee: string;
+    total: string;
+    currency: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  nextCursor: string | null;
+};
+export type OrderDetailResponse = {
+  order: Record<string, unknown>;
+  address: Record<string, unknown> | null;
+  discount: Record<string, unknown> | null;
+  items: Array<Record<string, unknown>>;
+  payments: Array<Record<string, unknown>>;
+  delivery:
+    | (Record<string, unknown> & {
+        trackingHistory?: Array<Record<string, unknown>>;
+      })
+    | null;
+  statusLogs: Array<Record<string, unknown>>;
+};
+type ListMyOrdersArgs = {
+  limit?: number;
+  cursor?: string;
+  status?: string;
+  locationId?: string;
+};
+export async function listMyOrders(args: ListMyOrdersArgs = {}) {
+  const res = await proxyClient.get<OrdersListResponse>(
+    "/api/proxy/online-orders/me",
+    {
+      params: {
+        limit: args.limit ?? 20,
+        cursor: args.cursor,
+        status: args.status,
+        locationId: args.locationId,
+      },
+      headers: {
+        "x-tenant-id": TENANT_ID,
+        ...(args.locationId ? { "x-location-id": args.locationId } : {}),
+      },
+    },
+  );
+  return res.data;
+}
+export async function getMyOrderById(
+  orderId: string,
+  args?: { locationId?: string },
+) {
+  const res = await proxyClient.get<OrderDetailResponse>(
+    `/api/proxy/online-orders/me/${encodeURIComponent(orderId)}`,
+    {
+      headers: {
+        "x-tenant-id": TENANT_ID,
+        ...(args?.locationId ? { "x-location-id": args.locationId } : {}),
+      },
+    },
+  );
+  return res.data;
 }

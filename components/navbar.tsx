@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LocationSelect } from "./location-select";
 import { ThemeToggle } from "./theme-toggle";
+import { hasAuthSession } from "@/lib/session";
 
 type NavbarProps = {
   locations: Location[];
@@ -31,10 +32,12 @@ export function Navbar({ locations }: NavbarProps) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    bootstrap().catch(() => {});
-
-  }, []);
-
+    (async () => {
+      const authed = await hasAuthSession();
+      if (!authed) return;            // logged-out user → skip /me and /refresh
+      await bootstrap();              // logged-in → fetch /me once
+    })().catch(() => {});
+  }, [bootstrap]);
   const displayItemCount = mounted ? itemCount : 0;
   const displayIsAuthenticated = mounted ? isAuthenticated : false;
   const displayUserName = mounted ? user?.name : undefined;

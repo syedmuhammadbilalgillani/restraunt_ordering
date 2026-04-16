@@ -20,7 +20,7 @@ import { CreateOnlineOrderPayload } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Banknote, CreditCard, Store, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -34,12 +34,14 @@ const checkoutSchema = z.object({
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
-  const { items, total, clearCart } = useCartStore();
+  const { items, total, clearCart, appliedDiscount } = useCartStore();
   const { isAuthenticated, user, defaultAddressId } = useAuthStore();
   const navigate = useRouter();
   const { selectedLocation } = useLocationStore();
 
-  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">(
+    "delivery",
+  );
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("cash");
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +65,15 @@ export default function CheckoutPage() {
     }
   }, [isAuthenticated, items.length, navigate]);
 
+  const subtotal = total();
+  const discount = useMemo(() => {
+    if (!appliedDiscount?.valid) return 0;
+    const n = Number(appliedDiscount.amountOff);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }, [appliedDiscount]);
+
+  const grandTotal = Math.max(0, subtotal - discount);
+
   const onSubmit = async (data: CheckoutForm) => {
     if (!selectedLocation?.id) {
       toast.error("Please select a location first.");
@@ -79,21 +90,30 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const payload: CreateOnlineOrderPayload = {
-        locationId: selectedLocation.id,
         orderType: deliveryType === "delivery" ? "delivery" : "takeaway",
         orderSource: "online",
         lines: cartToOrderLines(items),
         ...(deliveryType === "delivery" && defaultAddressId
           ? { deliveryAddressId: defaultAddressId }
           : {}),
-        customerNotes: [data.name, data.phone, data.address].filter(Boolean).join(" · "),
+        ...(appliedDiscount?.valid
+          ? {
+              discountCode: appliedDiscount.code,
+              discountId: appliedDiscount.discountId,
+            }
+          : {}),
+        customerNotes: [data.name, data.phone, data.address]
+          .filter(Boolean)
+          .join(" · "),
+        clientTotal: grandTotal.toFixed(2),
       };
 
-      // Cookie auth is handled by apiClient credentials: "include"
-      const order = await createOnlineOrder(payload);
+      const order = await createOnlineOrder(payload, selectedLocation.id);
 
       clearCart();
-      toast.success(`Order placed${order.orderNumber ? ` #${order.orderNumber}` : ""}!`);
+      toast.success(
+        `Order placed${order.orderNumber ? ` #${order.orderNumber}` : ""}!`,
+      );
       navigate.push("/orders");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not place order";
@@ -121,7 +141,9 @@ export default function CheckoutPage() {
         <div className="grid md:grid-cols-5 gap-8">
           <div className="md:col-span-3 space-y-6">
             <div className="rounded-xl border bg-card p-6">
-              <h2 className="font-display font-semibold mb-4">Delivery Method</h2>
+              <h2 className="font-display font-semibold mb-4">
+                Delivery Method
+              </h2>
               <RadioGroup
                 value={deliveryType}
                 onValueChange={(v) => setDeliveryType(v as "delivery" | "pickup")}
@@ -130,7 +152,9 @@ export default function CheckoutPage() {
                 <Label
                   htmlFor="delivery"
                   className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                    deliveryType === "delivery" ? "border-primary bg-primary/5" : ""
+                    deliveryType === "delivery"
+                      ? "border-primary bg-primary/5"
+                      : ""
                   }`}
                 >
                   <RadioGroupItem value="delivery" id="delivery" />
@@ -139,7 +163,9 @@ export default function CheckoutPage() {
                 <Label
                   htmlFor="pickup"
                   className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                    deliveryType === "pickup" ? "border-primary bg-primary/5" : ""
+                    deliveryType === "pickup"
+                      ? "border-primary bg-primary/5"
+                      : ""
                   }`}
                 >
                   <RadioGroupItem value="pickup" id="pickup" />
@@ -190,10 +216,15 @@ export default function CheckoutPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {deliveryType === "delivery" ? "Delivery Notes / Address" : "Notes"}
+                          {deliveryType === "delivery"
+                            ? "Delivery Notes / Address"
+                            : "Notes"}
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="Address or delivery instructions" {...field} />
+                          <Input
+                            placeholder="Address or delivery instructions"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -238,12 +269,14 @@ export default function CheckoutPage() {
               <h2 className="font-display text-xl font-bold">Order Summary</h2>
 
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm">
+                {items.map((item) => (
+                  <div key={item.lineId} className="flex justify-between text-sm">
                     <span>
                       {item.quantity}x {item.menuItem.name}
                     </span>
-                    <span>${(item.menuItem.basePrice * item.quantity).toFixed(2)}</span>
+                    <span>
+                      ${(item.menuItem.basePrice * item.quantity).toFixed(2)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -251,8 +284,18 @@ export default function CheckoutPage() {
               <div className="border-t pt-3 space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${total().toFixed(2)}</span>
+                  <span>${subtotal.toFixed(2)}</span>
                 </div>
+
+                {appliedDiscount?.valid ? (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Discount ({appliedDiscount.code})
+                    </span>
+                    <span className="text-success">-${discount.toFixed(2)}</span>
+                  </div>
+                ) : null}
+
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery</span>
                   <span className="text-success">
@@ -263,7 +306,7 @@ export default function CheckoutPage() {
 
               <div className="border-t pt-3 flex justify-between font-display font-bold text-lg">
                 <span>Total</span>
-                <span className="text-primary">${total().toFixed(2)}</span>
+                <span className="text-primary">${grandTotal.toFixed(2)}</span>
               </div>
 
               <Button
@@ -273,7 +316,9 @@ export default function CheckoutPage() {
                 type="submit"
                 disabled={loading}
               >
-                {loading ? "Placing Order..." : `Place Order · $${total().toFixed(2)}`}
+                {loading
+                  ? "Placing Order..."
+                  : `Place Order · $${grandTotal.toFixed(2)}`}
               </Button>
             </div>
           </div>

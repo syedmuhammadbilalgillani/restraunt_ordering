@@ -48,7 +48,7 @@ export const getAllLocations = unstable_cache(
   async () => {
     try {
       const response = await apiClient.get<Location[]>("/locations");
-      console.log(response.data, "location data");
+      // console.log(response.data, "location data");
       return Array.isArray(response?.data)
         ? (response?.data as Location[])
         : [];
