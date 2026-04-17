@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { API_URL, TENANT_ID } from "@/constants";
+import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
 
 const ACCESS_COOKIE = "fh_at";
 
@@ -12,7 +13,7 @@ async function handler(
 
   const cookieStore = await cookies();
   const token = cookieStore.get(ACCESS_COOKIE)?.value;
-
+  
   const url = new URL(req.url);
   const target = new URL(`${API_URL.replace(/\/$/, "")}/${path.join("/")}`);
   target.search = url.search; // forward querystring
@@ -24,7 +25,8 @@ async function handler(
   
   // IMPORTANT: set Bearer token from HttpOnly cookie
   if (token) headers.set("Authorization", `Bearer ${token}`);
-
+  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
+  if (locationId) headers.set("x-location-id", locationId);
   // If you don't want cookies forwarded to backend, remove them:
   const joinedPath = path.join("/");
   // backend refresh path is: /api/v1/customer-auth/refresh

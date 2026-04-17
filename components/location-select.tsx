@@ -59,8 +59,15 @@ export function LocationSelect({
             return (
               <DropdownMenuItem
                 key={location.id}
-                onClick={() => {
+                onClick={async () => {
                   setSelectedLocation(location);
+                
+                  await fetch("/api/set-location", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ locationId: location.id, returnTo: window.location.pathname }),
+                  });
+                
                   router.refresh();
                 }}
                 className="flex items-center justify-between"

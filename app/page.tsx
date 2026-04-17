@@ -18,7 +18,7 @@ import Image from "next/image";
 export default async function HomePage() {
   const cookieStore = await cookies();
   const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
-
+console.log(locationId, "locationId");
   // console.log(locationId, "locationId");
   // if (!locationId) {
   //   return (

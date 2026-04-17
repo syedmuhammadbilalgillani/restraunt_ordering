@@ -51,10 +51,10 @@ export default async function RootLayout({
         suppressContentEditableWarning
         className="min-h-full flex flex-col"
       >
-        <LocationWrapper locations={locations || []}>
+        {/* <LocationWrapper locations={locations || []}> */}
           <Navbar locations={locations || []} />
           <TanstackProvider>{children}</TanstackProvider>
-        </LocationWrapper>
+        {/* </LocationWrapper> */}
         <Toaster />
       </body>
     </html>

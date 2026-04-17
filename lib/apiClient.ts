@@ -201,7 +201,8 @@ async function request<T>(
       };
     }
 
-    throw new ApiError(message, response.status, responseBody);
+    // throw new ApiError(message, response.status, responseBody);
+    console.log(message, "message");
   }
 
   return {
