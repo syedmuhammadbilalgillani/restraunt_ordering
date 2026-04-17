@@ -129,9 +129,9 @@ async function refreshCustomerSession(baseURL?: string): Promise<boolean> {
 
   try {
     const body = await parseResponseBody<unknown>(res);
-    console.warn("[api] refresh failed", res.status, body);
+    console.log("[api] refresh failed", res.status, body);
   } catch {
-    console.warn("[api] refresh failed", res.status);
+    console.log("[api] refresh failed", res.status);
   }
   return false;
 }

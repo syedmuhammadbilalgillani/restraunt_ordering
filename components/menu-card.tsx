@@ -19,7 +19,6 @@ export function MenuCard({ item }: MenuCardProps) {
   const itemDescription = item.description;
   const itemImage = item.imageUrl;
   const itemPrice = item.basePrice;
-  const itemId = item.id;
   const itemSlug = item.slug;
   const handleAdd = (e: React.MouseEvent) => {
     // if (!canAddToCart) return;
@@ -47,15 +46,6 @@ export function MenuCard({ item }: MenuCardProps) {
             <Skeleton className="aspect-4/3" />
           </div>
         )}
-        {/* {item.tags && item.tags.length > 0 && (
-            <div className="absolute top-2 left-2 flex gap-1">
-              {item.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="bg-background/90 backdrop-blur-sm text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )} */}
       </div>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
