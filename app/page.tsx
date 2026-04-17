@@ -1,8 +1,6 @@
 import { MenuCard } from "@/components/menu-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
-// import { Skeleton } from "@/components/ui/skeleton";
 import {
   getAllMenuCategoriesByLocation,
   getAllMenuItemsByCategory,
@@ -10,15 +8,13 @@ import {
 // import { categories } from "@/lib/mock-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, ChevronRight, Clock, Truck, Utensils } from "lucide-react";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 import Image from "next/image";
+import { getSessionData } from "@/lib/iron-session/session.actions";
 
 export default async function HomePage() {
-  const cookieStore = await cookies();
-  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
-  console.log(locationId, "locationId");
+  const sessionData = await getSessionData();
   // console.log(locationId, "locationId");
   // if (!locationId) {
   //   return (
@@ -30,11 +26,11 @@ export default async function HomePage() {
   //   );
   // }
   const menuCategories = await getAllMenuCategoriesByLocation({
-    locationId: locationId || undefined,
+    locationId: sessionData?.locationId || undefined,
   });
   const menuItems = await getAllMenuItemsByCategory({
     params: {
-      locationId: locationId || undefined,
+      locationId: sessionData?.locationId || undefined,
       limit: 20,
       featured: true,
     },
