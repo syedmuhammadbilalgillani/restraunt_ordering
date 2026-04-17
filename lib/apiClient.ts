@@ -116,8 +116,7 @@ function extractErrorMessage(body: unknown, fallback: string): string {
 }
 
 async function refreshCustomerSession(baseURL?: string): Promise<boolean> {
-  // Pattern-2 BFF: refresh must go through Next proxy
-  const refreshUrl = resolveUrl("/api/proxy/customer-auth/refresh", baseURL);
+  const refreshUrl = resolveUrl("/api/auth/refresh", baseURL);
 
   const res = await fetch(refreshUrl, {
     method: "POST",

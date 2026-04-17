@@ -1,15 +1,14 @@
-import { MenuCard } from "@/components/menu-card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
-import { getAllMenuItemsByCategory, getMenuItemById } from "@/lib/api";
-import { ArrowLeft } from "lucide-react";
-import { cookies } from "next/headers";
-import Link from "next/link";
-import Image from "next/image";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ItemAddToCart } from "@/components/item-add-to-cart";
+import { MenuCard } from "@/components/menu-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getAllMenuItemsByCategory, getMenuItemById } from "@/lib/api";
+import { getSessionData } from "@/lib/iron-session/session.actions";
 import { MenuItemDetails } from "@/types";
+import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 type ItemPageProps = {
   params: Promise<{ item: string }>;
@@ -17,12 +16,10 @@ type ItemPageProps = {
 
 export default async function ProductDetailsPage({ params }: ItemPageProps) {
   const { item } = await params;
-  const cookieStore = await cookies();
-  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
-
+  const sessionData = await getSessionData();
   const itemResponse = await getMenuItemById({
     slug: decodeURIComponent(item),
-    locationId,
+    locationId: sessionData?.locationId,
   });
   const itemData = itemResponse?.data;
   console.log(item, "item");
@@ -40,7 +37,7 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
   const related = await getAllMenuItemsByCategory({
     params: {
       categoryId: itemData?.categoryId,
-      locationId: locationId || undefined,
+      locationId: sessionData?.locationId || undefined,
       limit: 6,
       featured: false,
     },

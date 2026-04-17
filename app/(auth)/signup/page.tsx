@@ -17,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuthStore } from "@/store/auth-store";
+import { signupAction } from "@/lib/iron-session/auth/auth.actions";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -30,7 +30,12 @@ import { z } from "zod";
 const signupSchema = z
   .object({
     fullName: z.string().trim().max(100).optional().or(z.literal("")),
-    email: z.string().trim().email("Invalid email address").optional().or(z.literal("")),
+    email: z
+      .string()
+      .trim()
+      .email("Invalid email address")
+      .optional()
+      .or(z.literal("")),
     phone: z.string().trim().min(7, "Phone is required").max(20),
     password: z.string().trim().optional().or(z.literal("")),
     confirmPassword: z.string().trim().optional().or(z.literal("")),
@@ -58,28 +63,39 @@ const signupSchema = z
 type SignupForm = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
-  const { signup } = useAuthStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { fullName: "", email: "", phone: "", password: "", confirmPassword: "" },
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
-  const passwordValue = useMemo(() => form.watch("password")?.trim() || "", [form.watch("password")]);
+  const passwordValue = useMemo(
+    () => form.watch("password")?.trim() || "",
+    [form.watch("password")],
+  );
 
   const onSubmit = async (data: SignupForm) => {
     setLoading(true);
     try {
-      await signup(
+      const res = await signupAction(
         data.fullName?.trim() || "",
         data.email?.trim() || "",
         data.phone.trim(),
         data.password?.trim() ? data.password.trim() : undefined,
       );
-
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
       toast.success("Account created!");
       router.push("/");
     } catch (e) {
@@ -98,8 +114,12 @@ export default function SignupPage() {
               F
             </div>
           </div>
-          <CardTitle className="font-display text-2xl">Create an account</CardTitle>
-          <CardDescription>Phone is required. Email/password are optional.</CardDescription>
+          <CardTitle className="font-display text-2xl">
+            Create an account
+          </CardTitle>
+          <CardDescription>
+            Phone is required. Email/password are optional.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -125,7 +145,12 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input placeholder="+923001234567" inputMode="tel" autoComplete="tel" {...field} />
+                      <Input
+                        placeholder="+923001234567"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -139,7 +164,12 @@ export default function SignupPage() {
                   <FormItem>
                     <FormLabel>Email (optional)</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@example.com" autoComplete="email" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -167,7 +197,11 @@ export default function SignupPage() {
                           className="absolute right-0 top-0 h-full"
                           onClick={() => setShowPassword(!showPassword)}
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </FormControl>
@@ -184,7 +218,11 @@ export default function SignupPage() {
                     <FormItem>
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -200,7 +238,10 @@ export default function SignupPage() {
 
           <p className="text-center text-sm text-muted-foreground mt-4">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary font-medium hover:underline">
+            <Link
+              href="/login"
+              className="text-primary font-medium hover:underline"
+            >
               Sign in
             </Link>
           </p>

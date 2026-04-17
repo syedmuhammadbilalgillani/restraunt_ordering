@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getIronSession } from "iron-session";
 import { API_URL, TENANT_ID } from "@/constants";
 import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
+import { sessionOptions, SessionData } from "@/lib/iron-session/session.config";
 
-const ACCESS_COOKIE = "fh_at";
+const NEST_REFRESH_COOKIE = "customer_refresh_token";
 
 async function handler(
   req: Request,
@@ -12,30 +14,40 @@ async function handler(
   const { path } = await ctx.params;
 
   const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE)?.value;
-  
+  const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+  const token = session.accessToken;
+
   const url = new URL(req.url);
   const target = new URL(`${API_URL.replace(/\/$/, "")}/${path.join("/")}`);
-  target.search = url.search; // forward querystring
+  target.search = url.search;
 
   const headers = new Headers(req.headers);
   headers.set("x-tenant-id", TENANT_ID);
   headers.delete("host");
 
-  
-  // IMPORTANT: set Bearer token from HttpOnly cookie
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
-  if (locationId) headers.set("x-location-id", locationId);
-  // If you don't want cookies forwarded to backend, remove them:
+  if (locationId) {
+    headers.set("x-location-id", locationId);
+  }
+
   const joinedPath = path.join("/");
-  // backend refresh path is: /api/v1/customer-auth/refresh
   const isCustomerRefresh =
     joinedPath === "api/v1/customer-auth/refresh" ||
     joinedPath.endsWith("/customer-auth/refresh");
-  if (!isCustomerRefresh) {
+
+  if (isCustomerRefresh && session.refreshToken) {
+    headers.set(
+      "cookie",
+      `${NEST_REFRESH_COOKIE}=${encodeURIComponent(session.refreshToken)}`,
+    );
+  } else if (!isCustomerRefresh) {
     headers.delete("cookie");
   }
+
   const res = await fetch(target, {
     method: req.method,
     headers,

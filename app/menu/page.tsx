@@ -1,11 +1,10 @@
+import { MenuCard } from "@/components/menu-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LOCATION_ID_COOKIE_KEY } from "@/constants/location";
 import { getPublicMenuBootstrap, getPublicMenuItems } from "@/lib/api";
-import { MenuCard } from "@/components/menu-card";
-import { cookies } from "next/headers";
-import Link from "next/link";
+import { getSessionData } from "@/lib/iron-session/session.actions";
 import { Item } from "@/types";
+import Link from "next/link";
 
 type MenuPageProps = {
   searchParams: Promise<{
@@ -34,13 +33,12 @@ function buildMenuHref({
 
 export default async function MenuPage({ searchParams }: MenuPageProps) {
   const params = await searchParams;
-  const cookieStore = await cookies();
-  const locationId = cookieStore.get(LOCATION_ID_COOKIE_KEY)?.value;
+  const sessionData = await getSessionData();
   const selectedCategory = params.category || undefined;
   const menuId = params.menuId || undefined;
   const cursor = params.cursor || undefined;
 
-  if (!locationId) {
+  if (!sessionData?.locationId) {
     return (
       <div className="min-h-screen">
         <div className="container py-20 text-center text-muted-foreground">
@@ -51,9 +49,9 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
   }
 
   const [bootstrapData, menuItemsResponse] = await Promise.all([
-    getPublicMenuBootstrap({ locationId, menuId }),
+    getPublicMenuBootstrap({ locationId: sessionData?.locationId, menuId }),
     getPublicMenuItems({
-      locationId,
+      locationId: sessionData?.locationId,
       menuId,
       categoryId: selectedCategory,
       cursor,
@@ -139,7 +137,6 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
             ) : null}
           </>
         )}
-
       </div>
     </div>
   );

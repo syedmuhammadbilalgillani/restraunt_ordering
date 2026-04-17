@@ -1,15 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { z } from "zod";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -25,8 +24,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { otpStart } from "@/lib/customer-auth";
-import { useAuthStore } from "@/store/auth-store";
+import { loginWithOtpAction } from "@/lib/iron-session/auth/auth.actions";
+import { useQueryClient } from "@tanstack/react-query";
 
 const startSchema = z.object({
   email: z.string().trim().email("Invalid email address"),
@@ -34,7 +35,10 @@ const startSchema = z.object({
 
 const verifySchema = z.object({
   email: z.string().trim().email("Invalid email address"),
-  otp: z.string().trim().regex(/^\d{6}$/, "OTP must be 6 digits"),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "OTP must be 6 digits"),
 });
 
 type StartForm = z.infer<typeof startSchema>;
@@ -42,7 +46,7 @@ type VerifyForm = z.infer<typeof verifySchema>;
 
 export default function LoginOtpPage() {
   const router = useRouter();
-  const { loginWithOtpVerify } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const [step, setStep] = useState<"start" | "verify">("start");
   const [loading, setLoading] = useState(false);
@@ -58,7 +62,9 @@ export default function LoginOtpPage() {
   });
 
   const emailValue = useMemo(() => {
-    return step === "start" ? startForm.watch("email") : verifyForm.watch("email");
+    return step === "start"
+      ? startForm.watch("email")
+      : verifyForm.watch("email");
   }, [startForm, step, verifyForm]);
 
   const onStart = async (data: StartForm) => {
@@ -78,8 +84,14 @@ export default function LoginOtpPage() {
   const onVerify = async (data: VerifyForm) => {
     setLoading(true);
     try {
-      await loginWithOtpVerify({ email: data.email, otp: data.otp });
+      // onVerify:
+      const res = await loginWithOtpAction(data.email, data.otp);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
       toast.success("Logged in!");
+      await queryClient.invalidateQueries({ queryKey: ["authSnapshot"] });
       router.push("/");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Invalid or expired code");
@@ -97,16 +109,23 @@ export default function LoginOtpPage() {
               F
             </div>
           </div>
-          <CardTitle className="font-display text-2xl">Sign in with OTP</CardTitle>
+          <CardTitle className="font-display text-2xl">
+            Sign in with OTP
+          </CardTitle>
           <CardDescription>
-            {step === "start" ? "We’ll email you a 6-digit code." : "Enter the 6-digit code we sent."}
+            {step === "start"
+              ? "We’ll email you a 6-digit code."
+              : "Enter the 6-digit code we sent."}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           {step === "start" ? (
             <Form {...startForm}>
-              <form onSubmit={startForm.handleSubmit(onStart)} className="space-y-4">
+              <form
+                onSubmit={startForm.handleSubmit(onStart)}
+                className="space-y-4"
+              >
                 <FormField
                   control={startForm.control}
                   name="email"
@@ -114,7 +133,11 @@ export default function LoginOtpPage() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="you@example.com" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -127,7 +150,10 @@ export default function LoginOtpPage() {
             </Form>
           ) : (
             <Form {...verifyForm}>
-              <form onSubmit={verifyForm.handleSubmit(onVerify)} className="space-y-4">
+              <form
+                onSubmit={verifyForm.handleSubmit(onVerify)}
+                className="space-y-4"
+              >
                 <FormField
                   control={verifyForm.control}
                   name="email"
@@ -135,7 +161,11 @@ export default function LoginOtpPage() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="you@example.com" {...field} />
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -148,7 +178,11 @@ export default function LoginOtpPage() {
                     <FormItem>
                       <FormLabel>OTP</FormLabel>
                       <FormControl>
-                        <Input inputMode="numeric" placeholder="123456" {...field} />
+                        <Input
+                          inputMode="numeric"
+                          placeholder="123456"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,7 +217,10 @@ export default function LoginOtpPage() {
           )}
 
           <div className="text-center text-sm text-muted-foreground">
-            <Link href="/login" className="text-primary font-medium hover:underline">
+            <Link
+              href="/login"
+              className="text-primary font-medium hover:underline"
+            >
               Back to password login
             </Link>
           </div>

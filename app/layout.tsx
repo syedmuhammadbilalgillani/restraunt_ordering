@@ -1,12 +1,16 @@
-import { Navbar } from "@/components/navbar";
+import { LocationPickerDialog } from "@/components/location-picker-dialog";
+import { OptionalUserGeolocation } from "@/components/optional-user-geolocation";
+import TanstackProvider from "@/components/tanstack-provide";
 import { Toaster } from "@/components/ui/sonner";
+import { getAllLocations } from "@/lib/api";
+import { getSessionData } from "@/lib/iron-session/session.actions";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import TanstackProvider from "@/components/tanstack-provide";
-import { getAllLocations } from "@/lib/api";
-import { LocationWrapper } from "@/components/location-wrapper";
+import { Navbar } from "@/components/navbar";
+import { AuthProvider } from "@/components/auth-provider";
+import { getAuthSnapshot } from "@/lib/iron-session/auth/auth.actions";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -34,6 +38,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locations = await getAllLocations();
+  const sessionData = await getSessionData();
+  const hasUserSavedGeo =
+    typeof sessionData?.userCurrentLatitude === "number" &&
+    typeof sessionData?.userCurrentLongitude === "number";
+  const authSnapshot = await getAuthSnapshot();
   return (
     <html
       lang="en"
@@ -51,10 +60,20 @@ export default async function RootLayout({
         suppressContentEditableWarning
         className="min-h-full flex flex-col"
       >
-        {/* <LocationWrapper locations={locations || []}> */}
-          <Navbar locations={locations || []} />
-          <TanstackProvider>{children}</TanstackProvider>
-        {/* </LocationWrapper> */}
+        <LocationPickerDialog
+          locations={locations || []}
+          requireSelection={locations.length > 1 && !sessionData?.locationId}
+        />
+
+        {/* <OptionalUserGeolocation hasUserSavedGeo={hasUserSavedGeo} /> */}
+        <Navbar
+          locations={locations || []}
+          defaultLocation={sessionData?.locationId ?? null}
+          authSnapshot={authSnapshot}
+        />
+        <TanstackProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </TanstackProvider>
         <Toaster />
       </body>
     </html>

@@ -23,9 +23,10 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { Eye, EyeOff, Shield, KeyRound } from "lucide-react";
+import { loginWithPasswordAction } from "@/lib/iron-session/auth/auth.actions";
+import { useQueryClient } from "@tanstack/react-query";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Invalid email address"),
@@ -35,10 +36,10 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { login } = useAuthStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -48,8 +49,13 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      await login(data.email, data.password);
+      const res = await loginWithPasswordAction(data.email, data.password);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
       toast.success("Welcome back!");
+      await queryClient.invalidateQueries({ queryKey: ["authSnapshot"] });
       router.push("/");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Login failed");
@@ -170,7 +176,10 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary font-medium hover:underline">
+            <Link
+              href="/signup"
+              className="text-primary font-medium hover:underline"
+            >
               Sign up
             </Link>
           </p>

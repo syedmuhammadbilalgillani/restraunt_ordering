@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/auth-store";
 import { listMyOrders, type OrdersListResponse } from "@/lib/online-orders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,7 +59,6 @@ function paymentBadgeVariant(
 }
 
 export default function OrdersPage() {
-  const { isAuthenticated, bootstrap } = useAuthStore();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -70,17 +68,6 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [rows, setRows] = useState<OrdersListResponse["data"]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-
-  // Ensure auth state is hydrated, then redirect if needed
-  useEffect(() => {
-    bootstrap().catch(() => {});
-  }, [bootstrap]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, router]);
 
   const filters = useMemo(
     () =>
@@ -133,12 +120,12 @@ export default function OrdersPage() {
   }
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    // if (!isAuthenticated) return;
     loadFirstPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, filter]);
+  }, [filter]);
 
-  if (!isAuthenticated) return null;
+  // if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen">
