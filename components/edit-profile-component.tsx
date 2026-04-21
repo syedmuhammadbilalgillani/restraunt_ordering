@@ -9,6 +9,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { updateProfileAction } from "@/lib/iron-session/auth/auth.actions";
 import { User } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
@@ -22,7 +23,7 @@ const profileSchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(100),
   email: z.string().email("Invalid email"),
   phone: z.string().trim().max(20).optional(),
-  address: z.string().trim().max(200).optional(),
+  gender: z.string().trim().max(20).optional(),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
@@ -30,11 +31,9 @@ type ProfileForm = z.infer<typeof profileSchema>;
 export default function EditProfileComponent({
   isAuthenticated,
   user,
-  updateProfile,
 }: {
   isAuthenticated: boolean;
   user: User;
-  updateProfile: (data: ProfileForm) => void;
 }) {
   const navigate = useRouter();
 
@@ -48,16 +47,24 @@ export default function EditProfileComponent({
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
-      address: user?.address || "",
+      gender: user?.gender || "",
     },
   });
 
-  const onSubmit = (data: ProfileForm) => {
-    updateProfile(data);
+  const onSubmit = async (data: ProfileForm) => {
+    const res = await updateProfileAction({
+      name: data.name,
+      email: data.email,
+      phone: data.phone || "",
+      gender: data.gender || "",
+    });
+    if (!res.success) {
+      toast.error(res.error);
+      return;
+    }
     toast.success("Profile updated successfully!");
     navigate.push("/profile");
   };
-
   if (!isAuthenticated) return null;
 
   return (
@@ -115,12 +122,12 @@ export default function EditProfileComponent({
             />
             <FormField
               control={form.control}
-              name="address"
+              name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>Gender</FormLabel>
                   <FormControl>
-                    <Input placeholder="123 Main St" {...field} />
+                    <Input placeholder="Male, Female, Other" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -24,11 +24,7 @@ export type AuthSnapshot = {
 function mapCustomerToUser(c: Customer): AuthUser {
   return {
     id: c.id,
-    name:
-      c.fullName?.trim() ||
-      c.email?.split("@")[0] ||
-      c.phone ||
-      "Customer",
+    name: c.fullName?.trim() || c.email?.split("@")[0] || c.phone || "Customer",
     email: c.email ?? "",
     phone: c.phone ?? undefined,
   };
@@ -155,15 +151,18 @@ export async function signupAction(
   password?: string,
 ) {
   try {
-    await customerBackendFetch<{ customerId: string }>("customer-auth/register", {
-      method: "POST",
-      body: JSON.stringify({
-        phone,
-        fullName: fullName.trim() || undefined,
-        email: email.trim() || undefined,
-        password: password?.trim() || undefined,
-      }),
-    });
+    await customerBackendFetch<{ customerId: string }>(
+      "customer-auth/register",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          phone,
+          fullName: fullName.trim() || undefined,
+          email: email.trim() || undefined,
+          password: password?.trim() || undefined,
+        }),
+      },
+    );
     revalidatePath("/", "layout");
     return { success: true as const };
   } catch (e) {
@@ -223,7 +222,12 @@ export async function logoutAction() {
   revalidatePath("/", "layout");
 }
 
-export async function updateProfileAction(fullName: string) {
+export async function updateProfileAction(data: {
+  name: string;
+  email: string;
+  phone: string;
+  gender: string;
+}) {
   const session = await getSession();
   if (!session.accessToken) {
     return { success: false as const, error: "Not signed in" };
@@ -234,7 +238,12 @@ export async function updateProfileAction(fullName: string) {
       {
         method: "PATCH",
         bearer: session.accessToken,
-        body: JSON.stringify({ fullName: fullName.trim() }),
+        body: JSON.stringify({
+          name: data.name.trim(),
+          email: data.email.trim(),
+          phone: data.phone.trim(),
+          gender: data.gender.trim(),
+        }),
       },
     );
     applyCustomerToSession(session, res.customer);

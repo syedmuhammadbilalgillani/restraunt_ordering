@@ -1,6 +1,7 @@
+import { API_URL } from "@/constants";
 import { createApiClient, type ApiRequestConfig } from "@/lib/apiClient";
 
-const BASE = "/api/proxy/customer-auth";
+const BASE = `${API_URL}/customer-auth`;
 
 // Use same-origin client so browser includes HttpOnly cookies (fh_at/fh_rt)
 // and Next proxy can attach `Authorization: Bearer <fh_at>`

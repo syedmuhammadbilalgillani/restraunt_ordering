@@ -1,11 +1,12 @@
 import EditProfileComponent from "@/components/edit-profile-component";
 import {
-  getAuthSnapshot,
-  updateProfileAction,
+  getAuthSnapshot
 } from "@/lib/iron-session/auth/auth.actions";
 
 const EditProfilePage = async () => {
   const authSnapshot = await getAuthSnapshot();
+
+
   return (
     <EditProfileComponent
       isAuthenticated={authSnapshot?.authenticated || false}
@@ -18,9 +19,6 @@ const EditProfilePage = async () => {
           address: "",
         }
       }
-      updateProfile={async (data) => {
-        await updateProfileAction(data.name);
-      }}
     />
   );
 };
