@@ -11,6 +11,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { AuthProvider } from "@/components/auth-provider";
 import { getAuthSnapshot } from "@/lib/iron-session/auth/auth.actions";
+import { AutoSelectLocation } from "@/components/auto-select-location";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -43,6 +44,8 @@ export default async function RootLayout({
     typeof sessionData?.userCurrentLatitude === "number" &&
     typeof sessionData?.userCurrentLongitude === "number";
   const authSnapshot = await getAuthSnapshot();
+
+  console.log("Session Data in RootLayout:", sessionData);
   return (
     <html
       lang="en"
@@ -66,6 +69,10 @@ export default async function RootLayout({
         />
 
         {/* <OptionalUserGeolocation hasUserSavedGeo={hasUserSavedGeo} /> */}
+        <AutoSelectLocation
+          shouldRun={locations.length === 1 && !sessionData?.locationId}
+        />
+
         <Navbar
           locations={locations || []}
           defaultLocation={sessionData?.locationId ?? null}

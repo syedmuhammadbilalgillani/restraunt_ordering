@@ -38,6 +38,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
   const menuId = params.menuId || undefined;
   const cursor = params.cursor || undefined;
 
+  console.log("Session Data:", sessionData);
   if (!sessionData?.locationId) {
     return (
       <div className="min-h-screen">
