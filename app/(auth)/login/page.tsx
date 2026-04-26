@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -24,7 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Shield, KeyRound } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2, Shield } from "lucide-react";
 import { loginWithPasswordAction } from "@/lib/iron-session/auth/auth.actions";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -35,8 +35,15 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function safeReturnPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null;
+  return raw;
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const queryClient = useQueryClient();
@@ -56,12 +63,18 @@ export default function LoginPage() {
       }
       toast.success("Welcome back!");
       await queryClient.invalidateQueries({ queryKey: ["authSnapshot"] });
-      router.push("/");
+      const next = safeReturnPath(searchParams.get("returnUrl")) ?? "/";
+      router.push(next);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Login failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  const continueAsGuest = () => {
+    const next = safeReturnPath(searchParams.get("returnUrl")) ?? "/";
+    router.push(next);
   };
 
   return (
@@ -147,6 +160,16 @@ export default function LoginPage() {
             </form>
           </Form>
 
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            onClick={continueAsGuest}
+            disabled={loading}
+          >
+            Continue as guest
+          </Button>
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t" />
@@ -186,5 +209,19 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }

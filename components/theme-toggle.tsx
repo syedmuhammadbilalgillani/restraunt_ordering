@@ -4,12 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(() => {
-    if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark");
-    }
-    return false;
-  });
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -18,12 +13,11 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const saved = localStorage.getItem("foodhub-theme");
-    if (saved === "dark") setDark(true);
-    else if (
-      !saved &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    )
-      setDark(true);
+    const initial =
+      saved === "dark" ||
+      (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    // Avoid sync setState inside effect body (eslint rule).
+    queueMicrotask(() => setDark(initial));
   }, []);
 
   return (

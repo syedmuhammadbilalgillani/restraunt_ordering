@@ -21,6 +21,13 @@ export interface SessionData {
   customerPhone?: string;
   defaultAddressId?: string | null;
 
+  /**
+   * Guest-friendly cart session token (stored HttpOnly via Iron Session).
+   * Used by server actions to call Nest `cart-sessions` endpoints without
+   * exposing token to the browser.
+   */
+  cartSessionToken?: string;
+
   [key: string]: unknown;
 }
 
