@@ -1,5 +1,9 @@
+"use server";
 import { API_URL } from "@/constants";
 import { createApiClient, type ApiRequestConfig } from "@/lib/apiClient";
+import { getIronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { SessionData, sessionOptions } from "./iron-session/session.config";
 
 const BASE = `${API_URL}/customer-auth`;
 
@@ -51,7 +55,10 @@ export async function registerCustomer(body: {
   email?: string;
   password?: string;
 }): Promise<{ customerId: string }> {
-  const res = await proxyClient.post<{ customerId: string }>(`${BASE}/register`, body);
+  const res = await proxyClient.post<{ customerId: string }>(
+    `${BASE}/register`,
+    body,
+  );
   return res.data;
 }
 
@@ -92,7 +99,10 @@ export async function otpVerify(body: {
   // accessToken: string;
   // refreshToken: string;
 }> {
-  const res = await proxyClient.post<{ customer: Customer }>(`${BASE}/otp/verify`, body);
+  const res = await proxyClient.post<{ customer: Customer }>(
+    `${BASE}/otp/verify`,
+    body,
+  );
   return res.data;
 }
 
@@ -109,8 +119,17 @@ export async function logoutCustomer(): Promise<{ ok: true }> {
 export async function getCustomerMe(
   config?: Pick<ApiRequestConfig, "silent">,
 ): Promise<{ customer: Customer } | null> {
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
   const res = await proxyClient.get<{ customer: Customer }>(`${BASE}/me`, {
     silent: config?.silent,
+    headers: {
+      authorization: `Bearer ${token}`,
+    },
   });
   return res.data ?? null;
 }
@@ -121,7 +140,21 @@ export async function updateCustomerMe(body: {
   smsOptIn?: boolean;
   whatsappOptIn?: boolean;
 }): Promise<{ customer: Customer }> {
-  const res = await proxyClient.patch<{ customer: Customer }>(`${BASE}/me`, body);
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
+  const res = await proxyClient.patch<{ customer: Customer }>(
+    `${BASE}/me`,
+    body,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
+  );
   return res.data;
 }
 
@@ -129,7 +162,21 @@ export async function changeCustomerPassword(body: {
   currentPassword: string;
   newPassword: string;
 }): Promise<{ ok: true }> {
-  const res = await proxyClient.post<{ ok: true }>(`${BASE}/password/change`, body);
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
+  const res = await proxyClient.post<{ ok: true }>(
+    `${BASE}/password/change`,
+    body,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
+  );
   return res.data;
 }
 
@@ -139,9 +186,20 @@ export async function passwordResetVerifyOtp(body: {
   email?: string;
   phone?: string;
 }): Promise<{ resetSessionToken: string }> {
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
   const res = await proxyClient.post<{ resetSessionToken: string }>(
     `${BASE}/password/reset/verify`,
     body,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
   );
   return res.data;
 }
@@ -150,16 +208,42 @@ export async function passwordResetConfirm(body: {
   resetSessionToken: string;
   newPassword: string;
 }): Promise<{ ok: true }> {
-  const res = await proxyClient.post<{ ok: true }>(`${BASE}/password/reset/confirm`, body);
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
+  const res = await proxyClient.post<{ ok: true }>(
+    `${BASE}/password/reset/confirm`,
+    body,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
+  );
   return res.data;
 }
 
 export async function listCustomerAddresses(
   config?: Pick<ApiRequestConfig, "silent">,
 ): Promise<{ addresses: CustomerAddress[] } | null> {
-  const res = await proxyClient.get<{ addresses: CustomerAddress[] }>(`${BASE}/addresses`, {
-    silent: config?.silent,
-  });
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
+  const res = await proxyClient.get<{ addresses: CustomerAddress[] }>(
+    `${BASE}/addresses`,
+    {
+      silent: config?.silent,
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
+  );
   return res.data ?? null;
 }
 
@@ -180,7 +264,21 @@ export async function createCustomerAddress(body: {
 
   isDefault?: boolean;
 }): Promise<{ address: CustomerAddress }> {
-  const res = await proxyClient.post<{ address: CustomerAddress }>(`${BASE}/addresses`, body);
+  const cookieStore = await cookies();
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
+  const res = await proxyClient.post<{ address: CustomerAddress }>(
+    `${BASE}/addresses`,
+    body,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
+  );
   return res.data;
 }
 
@@ -204,9 +302,21 @@ export async function updateCustomerAddress(
     isDefault: boolean;
   }>,
 ): Promise<{ address: CustomerAddress }> {
+  const cookieStore = await cookies();
+
+  const session = await getIronSession<SessionData>(
+    cookieStore,
+    sessionOptions,
+  );
+  const token = session.accessToken;
   const res = await proxyClient.patch<{ address: CustomerAddress }>(
     `${BASE}/addresses/${encodeURIComponent(id)}`,
     body,
+    {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    },
   );
   return res.data;
 }
