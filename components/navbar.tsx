@@ -8,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCartStore } from "@/store/cart-store";
 import type { Location } from "@/types";
 import type { AuthSnapshot } from "@/lib/iron-session/auth/auth.actions";
 import { logoutAction } from "@/lib/iron-session/auth/auth.actions";
@@ -18,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { LocationPickerDialog } from "./location-picker-dialog";
 import { ThemeToggle } from "./theme-toggle";
+import { useCartStore } from "@/lib/cart/cart.store";
 
 type NavbarProps = {
   locations: Location[];
@@ -31,19 +31,19 @@ export function Navbar({
   defaultLocation,
   authSnapshot,
 }: NavbarProps) {
-  const itemCount = useCartStore((s) => s.itemCount());
   const navigate = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [logoutPending, startLogoutTransition] = useTransition();
+  const cart = useCartStore((s) => s.countItems());
+  const cartCount = mounted ? cart : 0;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
-  const displayItemCount = mounted ? itemCount : 0;
   const displayIsAuthenticated = authSnapshot.authenticated;
   const displayUserName = authSnapshot.user?.name;
 
@@ -84,15 +84,18 @@ export function Navbar({
               <Link href="/orders">Orders</Link>
             </Button>
           )}
-
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocationDialogOpen((v) => !v)}
-          >
-            {activeLocationName ?? "Location"}
-          </Button>
+          {locations?.length === 1 ? (
+            <></>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocationDialogOpen((v) => !v)}
+            >
+              {activeLocationName ?? "Location"}
+            </Button>
+          )}
           <ThemeToggle />
 
           <Button
@@ -103,11 +106,10 @@ export function Navbar({
           >
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
-              {displayItemCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground">
-                  {displayItemCount}
-                </Badge>
-              )}
+
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground">
+                {cartCount}
+              </Badge>
             </Link>
           </Button>
 
@@ -153,11 +155,9 @@ export function Navbar({
           >
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
-              {displayItemCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground">
-                  {displayItemCount}
-                </Badge>
-              )}
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary text-primary-foreground">
+                {cartCount}
+              </Badge>
             </Link>
           </Button>
           <Button
@@ -199,7 +199,9 @@ export function Navbar({
               }}
               className="px-3 py-2 rounded-md hover:bg-secondary text-left"
             >
-              {activeLocationName ? `Location: ${activeLocationName}` : "Choose location"}
+              {activeLocationName
+                ? `Location: ${activeLocationName}`
+                : "Choose location"}
             </button>
             {displayIsAuthenticated ? (
               <>
