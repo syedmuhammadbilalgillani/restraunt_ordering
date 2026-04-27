@@ -1,14 +1,13 @@
-import { ItemAddToCart } from "@/components/item-add-to-cart";
 import { MenuCard } from "@/components/menu-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAllMenuItemsByCategory, getMenuItemById } from "@/lib/api";
 import { getSessionData } from "@/lib/iron-session/session.actions";
-import { MenuItemDetails } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { AddToCartSection } from "@/components/add-to-cart-section";
 
 type ItemPageProps = {
   params: Promise<{ item: string }>;
@@ -43,7 +42,7 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
     },
   });
   const relatedItems = related.data.items
-    .filter((ri) => ri.id !== item)
+    .filter((ri) => ri.id !== itemData.id)
     .slice(0, 3);
 
   return (
@@ -101,6 +100,8 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
                 </p>
               ) : null}
             </div>
+
+            <AddToCartSection item={itemData} />
             {/* {itemData?.modifierGroups && itemData?.modifierGroups.length > 0 ? (
               <section className="mt-12">
                 <h2 className="font-display text-2xl font-bold mb-4">
@@ -136,7 +137,6 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
                 </div>
               </section>
             ) : null} */}
-            <ItemAddToCart item={itemData as MenuItemDetails} />
           </div>
         </div>
 

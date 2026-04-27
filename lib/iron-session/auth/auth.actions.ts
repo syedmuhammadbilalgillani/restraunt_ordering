@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { attachCartToCustomerServer } from "@/lib/cart/cart.server";
 import type { Customer, CustomerAddress } from "@/lib/customer-auth";
 import { customerBackendFetch } from "@/lib/customer-backend-fetch";
 import { getSession } from "../session";
@@ -117,6 +118,20 @@ export async function getAuthSnapshot(): Promise<AuthSnapshot> {
   }
 }
 
+export async function listMyAddressesAction(): Promise<{
+  addresses: CustomerAddress[];
+}> {
+  const session = await getSession();
+  if (!session.accessToken) {
+    throw new Error("Not signed in");
+  }
+  const res = await customerBackendFetch<{ addresses: CustomerAddress[] }>(
+    "customer-auth/addresses",
+    { method: "GET", bearer: session.accessToken },
+  );
+  return { addresses: res.addresses ?? [] };
+}
+
 export async function loginWithPasswordAction(email: string, password: string) {
   try {
     const data = await customerBackendFetch<{
@@ -134,6 +149,11 @@ export async function loginWithPasswordAction(email: string, password: string) {
     applyCustomerToSession(session, data.customer);
     session.defaultAddressId = await loadDefaultAddressId(data.accessToken);
     await session.save();
+    try {
+      await attachCartToCustomerServer();
+    } catch {
+      /* guest cart or attach not applicable */
+    }
     revalidatePath("/", "layout");
     return { success: true as const };
   } catch (e) {
@@ -194,6 +214,11 @@ export async function loginWithOtpAction(email: string, otp: string) {
     applyCustomerToSession(session, data.customer);
     session.defaultAddressId = await loadDefaultAddressId(data.accessToken);
     await session.save();
+    try {
+      await attachCartToCustomerServer();
+    } catch {
+      /* guest cart or attach not applicable */
+    }
     revalidatePath("/", "layout");
     return { success: true as const };
   } catch (e) {

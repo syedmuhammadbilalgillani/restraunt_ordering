@@ -1,32 +1,39 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCartStore } from "@/store/cart-store";
 import { Item } from "@/types";
-import { Plus, Star } from "lucide-react";
+import { Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Skeleton } from "./ui/skeleton";
+import { useCartStore } from "@/lib/cart/cart.store";
+import { syncCartToServer } from "@/lib/cart/cart.client";
+import { useTransition } from "react";
 
 interface MenuCardProps {
   item: Item;
 }
 
 export function MenuCard({ item }: MenuCardProps) {
-  const addItem = useCartStore((s) => s.addItem);
   const itemName = item.name;
   const itemDescription = item.description;
   const itemImage = item.imageUrl;
   const itemPrice = item.basePrice;
   const itemSlug = item.slug;
+  const add = useCartStore((s) => s.add);
+  const [pending, startTransition] = useTransition();
   const handleAdd = (e: React.MouseEvent) => {
     // if (!canAddToCart) return;
     e.preventDefault();
     e.stopPropagation();
-    console.log(item, "item");
-    addItem({ menuItem: item, quantity: 1, modifiers: [] });
+    add({ menuItem: item, quantity: 1 });
     toast.success(`${itemName} added to cart`);
+    startTransition(async () => {
+      // NOTE: use a microtask to ensure Zustand state has applied before reading.
+      await Promise.resolve();
+      await syncCartToServer(useCartStore.getState().lines);
+    });
   };
 
   const cardContent = (
@@ -75,6 +82,7 @@ export function MenuCard({ item }: MenuCardProps) {
             size="icon"
             className="h-8 w-8 rounded-full"
             onClick={handleAdd}
+            disabled={pending}
           >
             <Plus className="h-4 w-4" />
           </Button>

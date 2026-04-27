@@ -45,7 +45,7 @@ function badgeVariant(
   return "outline";
 }
 
-type AnyObj = Record<string, any>;
+type AnyObj = Record<string, unknown>;
 
 export default function OrderDetailComponent({
   isAuthenticated,
@@ -112,9 +112,9 @@ export default function OrderDetailComponent({
           </Button>
           <div className="min-w-0">
             <h1 className="font-display text-3xl font-bold">Order Details</h1>
-            {order.orderNumber ? (
+            {order.orderNumber != null ? (
               <p className="text-sm text-muted-foreground font-mono">
-                {order.orderNumber}
+                {String(order.orderNumber)}
               </p>
             ) : null}
           </div>
@@ -200,7 +200,7 @@ export default function OrderDetailComponent({
                   items.map((it, idx) => {
                     const mods = (it.modifiers ?? []) as AnyObj[];
                     return (
-                      <div key={it.id ?? idx} className="space-y-2">
+                      <div key={String(it.id ?? idx)} className="space-y-2">
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
                             <p className="font-medium">
@@ -215,7 +215,7 @@ export default function OrderDetailComponent({
                             {mods.length ? (
                               <div className="text-xs text-muted-foreground mt-1 space-y-1">
                                 {mods.map((m, i) => (
-                                  <div key={m.id ?? i}>
+                                  <div key={String(m.id ?? i)}>
                                     +{" "}
                                     {String(
                                       m.modifierNameSnapshot ?? "Modifier",
@@ -329,7 +329,7 @@ export default function OrderDetailComponent({
                   <p className="text-muted-foreground">No payments recorded.</p>
                 ) : (
                   payments.map((p, idx) => (
-                    <div key={p.id ?? idx} className="space-y-1">
+                    <div key={String(p.id ?? idx)} className="space-y-1">
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">
                           {String(p.paymentMethod ?? "payment")} •{" "}
@@ -362,7 +362,7 @@ export default function OrderDetailComponent({
                 <CardContent className="space-y-3 text-sm">
                   {statusLogs.map((l, idx) => (
                     <div
-                      key={l.id ?? idx}
+                      key={String(l.id ?? idx)}
                       className="flex items-start justify-between gap-4"
                     >
                       <div>
