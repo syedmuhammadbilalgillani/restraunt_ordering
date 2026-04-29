@@ -64,7 +64,7 @@ export default async function MenuPage({ searchParams }: MenuPageProps) {
   const menuItems = menuItemsResponse?.data?.items || [];
   const hasMore = menuItemsResponse?.data?.hasMore;
   const nextCursor = menuItemsResponse?.data?.nextCursor || undefined;
-
+  console.log(bootstrapData, "bootstrapData");
   return (
     <div className="min-h-screen">
       <div className="container py-8">
