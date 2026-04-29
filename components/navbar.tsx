@@ -61,18 +61,16 @@ export function Navbar({
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b bg-primary backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display font-bold text-lg">
+        <Link href="/" className="flex items-center gap-2 text-primary-foreground ">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg  bg-primary-foreground text-primary-foreground font-display font-bold text-lg">
             F
           </div>
-          <span className="font-display text-xl font-bold hidden sm:inline">
-            FoodHub
-          </span>
+         
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden text-primary-foreground md:flex items-center gap-1">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/">Home</Link>
           </Button>

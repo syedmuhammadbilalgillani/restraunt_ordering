@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AddToCartSection } from "@/components/add-to-cart-section";
+import AppImage from "@/components/remote-image";
 
 type ItemPageProps = {
   params: Promise<{ item: string }>;
@@ -55,9 +56,8 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
         </Button>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {itemData?.imageUrl ? (
             <div className="rounded-2xl overflow-hidden shadow-lg">
-              <Image
+              <AppImage
                 height={712}
                 width={712}
                 src={itemData?.imageUrl || ""}
@@ -65,11 +65,7 @@ export default async function ProductDetailsPage({ params }: ItemPageProps) {
                 className="object-cover w-full aspect-square"
               />
             </div>
-          ) : (
-            <div className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500">
-              <Skeleton className="aspect-square" />
-            </div>
-          )}
+         
           <div className="flex flex-col">
             <div className="flex flex-wrap gap-2 mb-3">
               <Badge variant="secondary">{itemData?.menu.name}</Badge>
